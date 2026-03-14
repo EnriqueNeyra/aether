@@ -1,0 +1,171 @@
+substitutions:
+  fw_version: "1.0.0"
+
+esphome:
+  name: aether
+  name_add_mac_suffix: true
+  friendly_name: Aether AQMonitor
+  project:
+    name: "neyra.aether"
+    version: ${fw_version}
+  includes:
+    - components/aether_display/aether_display.h
+
+  on_boot:
+    priority: -100 # Run after all sensors/components are initialized
+    then:
+      - delay: 5min # Duration the AP remains active for setup
+      - if:
+          condition:
+            not:
+              wifi.connected:
+          then:
+            - logger.log: "No WiFi configured. Disabling AP to enter Offline Mode."
+            - wifi.disable:
+
+  platformio_options:
+    lib_ldf_mode: deep+
+    lib_deps:
+      - zinggjm/GxEPD2@^1.6.4
+      - adafruit/Adafruit GFX Library@^1.12.3
+      - adafruit/Adafruit BusIO@^1.15.0
+
+esp32:
+  board: esp32-c3-devkitm-1
+  variant: esp32c3
+  framework:
+    type: arduino
+
+logger:
+  level: INFO
+
+api:
+  reboot_timeout: 0s
+
+ota:
+  - platform: esphome
+  - platform: http_request
+    id: ota_http
+
+http_request:
+  verify_ssl: false # required on Arduino framework for HTTPS
+
+update:
+  - platform: http_request
+    id: aether_fw_update
+    name: "Aether Firmware"
+    source: "https://enriqueneyra.github.io/Aether/ota-manifest.json"
+    update_interval: 24h
+
+wifi:
+  ap:
+    ap_timeout: 1min
+  reboot_timeout: 0s
+  power_save_mode: NONE
+  fast_connect: false
+binary_sensor:
+captive_portal:
+improv_serial:
+
+mdns:
+  services:
+    - service: _http
+      protocol: _tcp
+      port: 80
+      txt: { path: "/" }
+
+web_server:
+  port: 80
+  version: 3
+  local: true
+  include_internal: true
+
+external_components:
+  - source:
+      type: local
+      path: components
+    components: [aether_ui, sen6x]
+
+# ─── Buses ─────────────────────────────────────────────────────────────────────
+
+i2c:
+  sda: 8
+  scl: 0
+  scan: true
+  id: bus_a
+
+# ─── Sensors (IDs used by display + web UI) ───────────────────────────────────
+
+sensor:
+  # SEN66 (PM / VOC / NOx / CO2 / Temp / RH)
+  - platform: sen6x
+    id: sen66_component
+    i2c_id: bus_a
+    address: 0x6B
+    update_interval: 10s
+
+    # PM values
+    pm_1_0:
+      id: pm1_0
+      name: "PM1.0"
+    pm_2_5:
+      id: pm2_5
+      name: "PM2.5"
+    pm_4_0:
+      id: pm4_0
+      name: "PM4.0"
+    pm_10_0:
+      id: pm10_0
+      name: "PM10"
+
+    # Gas Indices
+    voc:
+      id: voc_index
+      name: "VOC Index"
+    nox:
+      id: nox_index
+      name: "NOx Index"
+
+    # CO2
+    co2:
+      id: co2
+      name: "CO2"
+
+    # Temperature & Humidity
+    temperature:
+      id: temp
+      name: "Temperature"
+    humidity:
+      id: rh
+      name: "Humidity"
+
+# ── Aether custom UI component (external) ───────────────────────────────────────
+aether_ui:
+  co2: co2
+  pm25: pm2_5
+  temp: temp
+  rh: rh
+  pm1: pm1_0
+  pm4: pm4_0
+  pm10: pm10_0
+  voc: voc_index
+  nox: nox_index
+  fw_update: aether_fw_update
+
+# ─── Main UI / E-paper render loop ────────────────────────────────────────────
+
+interval:
+  - interval: 5s
+    then:
+      - lambda: |-
+          aether::aether_display::tick_and_draw(
+            (uint16_t)(isnan(id(co2).state)   ? 0 : id(co2).state),
+            isnan(id(temp).state)             ? 0 : id(temp).state,
+            isnan(id(rh).state)               ? 0 : id(rh).state,
+            isnan(id(pm1_0).state)            ? 0 : id(pm1_0).state,
+            isnan(id(pm2_5).state)            ? 0 : id(pm2_5).state,
+            isnan(id(pm4_0).state)            ? 0 : id(pm4_0).state,
+            isnan(id(pm10_0).state)           ? 0 : id(pm10_0).state,
+            isnan(id(voc_index).state)        ? 0 : id(voc_index).state,
+            isnan(id(nox_index).state)        ? 0 : id(nox_index).state
+          );
