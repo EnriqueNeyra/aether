@@ -1,0 +1,21 @@
+# IDE Files
+.vscode
+.gemini
+
+# Firmware Files
+.pio
+.esphome
+__pycache__/
+
+# KiCad temporary files, caches, and locks
+*.kicad_prl
+*.lock
+fp-info-cache
+
+# KiCad automatic backups
+*-backups/
+*.bck
+*.bak
+*bak
+*bck
+*.tmp
