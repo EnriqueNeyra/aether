@@ -1,6 +1,7 @@
 # IDE Files
 .vscode
 .gemini
+.github
 
 # Firmware Files
 .pio
