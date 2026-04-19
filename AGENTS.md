@@ -39,23 +39,24 @@ ota-manifest.json                        # OTA update manifest (version + binary
 
 The SEN66 sensor is declared in `aether.yaml` with a 10-second update interval. It produces nine metric IDs:
 
-| Sensor ID    | Metric        | Unit      |
-|-------------|---------------|-----------|
-| `co2`       | CO₂           | ppm       |
-| `temp`      | Temperature   | °C        |
-| `rh`        | Humidity      | %RH       |
-| `pm1_0`     | PM1.0         | µg/m³     |
-| `pm2_5`     | PM2.5         | µg/m³     |
-| `pm4_0`     | PM4.0         | µg/m³     |
-| `pm10_0`    | PM10          | µg/m³     |
-| `voc_index` | VOC Index     | (index)   |
-| `nox_index` | NOx Index     | (index)   |
+| Sensor ID   | Metric      | Unit    |
+| ----------- | ----------- | ------- |
+| `co2`       | CO₂         | ppm     |
+| `temp`      | Temperature | °C      |
+| `rh`        | Humidity    | %RH     |
+| `pm1_0`     | PM1.0       | µg/m³   |
+| `pm2_5`     | PM2.5       | µg/m³   |
+| `pm4_0`     | PM4.0       | µg/m³   |
+| `pm10_0`    | PM10        | µg/m³   |
+| `voc_index` | VOC Index   | (index) |
+| `nox_index` | NOx Index   | (index) |
 
 ### Display Path
 
 A YAML `interval` block calls `aether::aether_epaper::tick_and_draw(...)` every **500ms**, passing all nine sensor values plus the temperature unit flag (`!id(temp_unit_c_switch).state` — true = Fahrenheit).
 
 `aether_epaper.h` manages four display modes:
+
 - **MODE_BOOT** — animated "Syntropy // Labs" wordmark with slash animation; transitions to normal when all metrics are valid.
 - **MODE_NORMAL** — main air quality dashboard rendered by `aether_epaper_layout::render_sketch_layout()`.
 - **MODE_INFO** — device information screen with QR codes. Shows hostname/IP/dashboard link when WiFi is connected; shows setup AP name and reboot instructions when disconnected.
@@ -64,6 +65,7 @@ A YAML `interval` block calls `aether::aether_epaper::tick_and_draw(...)` every 
 ### Web UI Path
 
 `aether_web_ui` is a custom ESPHome component that registers an `AsyncWebHandler` on port 80. It serves:
+
 - `GET /` — the full dashboard UI (single-page app inlined from `web/` sources)
 - `GET /api/state` — JSON payload with all metrics, firmware version, temp unit, and OTA status
 - `POST /api/perform_update` — triggers OTA firmware update
@@ -78,6 +80,7 @@ The web dashboard has two tabs: **Environment** (live sensor grid, polls `/api/s
 ### Temperature Unit Preference
 
 Temperature unit is managed via an ESPHome template switch (`temp_unit_c_switch`) with `restore_mode: RESTORE_DEFAULT_OFF`:
+
 - Switch ON = Celsius, Switch OFF = Fahrenheit (default)
 - The switch state persists across reboots via ESPHome's built-in restore mechanism
 - The display reads the switch state via the interval lambda: `!id(temp_unit_c_switch).state`
@@ -88,8 +91,8 @@ Temperature unit is managed via an ESPHome template switch (`temp_unit_c_switch`
 
 - **ESPHome native OTA** (`ota: platform: esphome`) for local development
 - **HTTP OTA** (`update: platform: http_request`) checks `ota-manifest.json` every 24h
-  - Manifest URL: `https://enriqueneyra.github.io/Aether/ota-manifest.json`
-  - Binary URL: `https://github.com/enriqueneyra/Aether/releases/latest/download/aether.bin`
+  - Manifest URL: `https://enriqueneyra.github.io/aether/ota-manifest.json`
+  - Binary URL: `https://github.com/enriqueneyra/aether/releases/latest/download/aether.bin`
 - Web UI triggers updates via `POST /api/perform_update` → `fw_update_->perform(false)`
 
 ### Network & Boot Behavior
@@ -103,6 +106,7 @@ Temperature unit is managed via an ESPHome template switch (`temp_unit_c_switch`
 ### Button Interactions
 
 The boot button (GPIO 9) supports two gestures via `on_multi_click`:
+
 - **Short press** (50ms–1s): calls `aether_epaper::on_short_press()` — toggles between MODE_NORMAL and MODE_INFO
 - **Long press** (≥3s): calls `aether_epaper::on_long_press()`:
   - From MODE_NORMAL → enters MODE_RESET (shows confirmation screen)
@@ -114,19 +118,20 @@ The boot button (GPIO 9) supports two gestures via `on_multi_click`:
 
 Sensor IDs must match exactly across these four touchpoints:
 
-| YAML sensor ID | `aether_web_ui:` key | `__init__.py` conf key | C++ setter          | Display lambda arg |
-|---------------|-------------------|----------------------|--------------------|--------------------|
-| `co2`         | `co2`             | `CONF_CO2`           | `set_co2()`        | `id(co2).state`    |
-| `pm2_5`       | `pm25`            | `CONF_PM25`          | `set_pm25()`       | `id(pm2_5).state`  |
-| `temp`        | `temp`            | `CONF_TEMP`          | `set_temp()`       | `id(temp).state`   |
-| `rh`          | `rh`              | `CONF_RH`            | `set_rh()`         | `id(rh).state`     |
-| `pm1_0`       | `pm1`             | `CONF_PM1`           | `set_pm1()`        | `id(pm1_0).state`  |
-| `pm4_0`       | `pm4`             | `CONF_PM4`           | `set_pm4()`        | `id(pm4_0).state`  |
-| `pm10_0`      | `pm10`            | `CONF_PM10`          | `set_pm10()`       | `id(pm10_0).state` |
-| `voc_index`   | `voc`             | `CONF_VOC`           | `set_voc()`        | `id(voc_index).state` |
-| `nox_index`   | `nox`             | `CONF_NOX`           | `set_nox()`        | `id(nox_index).state` |
+| YAML sensor ID | `aether_web_ui:` key | `__init__.py` conf key | C++ setter   | Display lambda arg    |
+| -------------- | -------------------- | ---------------------- | ------------ | --------------------- |
+| `co2`          | `co2`                | `CONF_CO2`             | `set_co2()`  | `id(co2).state`       |
+| `pm2_5`        | `pm25`               | `CONF_PM25`            | `set_pm25()` | `id(pm2_5).state`     |
+| `temp`         | `temp`               | `CONF_TEMP`            | `set_temp()` | `id(temp).state`      |
+| `rh`           | `rh`                 | `CONF_RH`              | `set_rh()`   | `id(rh).state`        |
+| `pm1_0`        | `pm1`                | `CONF_PM1`             | `set_pm1()`  | `id(pm1_0).state`     |
+| `pm4_0`        | `pm4`                | `CONF_PM4`             | `set_pm4()`  | `id(pm4_0).state`     |
+| `pm10_0`       | `pm10`               | `CONF_PM10`            | `set_pm10()` | `id(pm10_0).state`    |
+| `voc_index`    | `voc`                | `CONF_VOC`             | `set_voc()`  | `id(voc_index).state` |
+| `nox_index`    | `nox`                | `CONF_NOX`             | `set_nox()`  | `id(nox_index).state` |
 
 Additional non-sensor wirings:
+
 - `aether_fw_update` → `fw_update` → `CONF_FW_UPDATE` → `set_fw_update()`
 - `temp_unit_c_switch` → `temp_unit_switch` → `CONF_TEMP_UNIT_SWITCH` → `set_temp_unit_switch()`
 
@@ -135,8 +140,8 @@ Additional non-sensor wirings:
 ```json
 {
   "co2": 450.0,
-  "temp": 22.50,
-  "rh": 45.00,
+  "temp": 22.5,
+  "rh": 45.0,
   "pm1": 3.0,
   "pm25": 5.5,
   "pm4": 6.0,
@@ -148,7 +153,7 @@ Additional non-sensor wirings:
   "has_update": false,
   "latest_version": "1.0.0",
   "update_state": "no_update",
-  "update_progress": 0.00
+  "update_progress": 0.0
 }
 ```
 
@@ -159,6 +164,7 @@ Additional non-sensor wirings:
 Fonts are pre-converted Adafruit GFX font headers in `firmware/components/aether_epaper/fonts/`. Each `.h` file is declared in `esphome.includes` in `aether.yaml` and referenced via `extern const GFXfont` in `aether_epaper_layout.h`.
 
 Active fonts used in code:
+
 - `Inter_Bold9pt7b` — small labels, secondary text
 - `Inter_Bold12pt7b` — info screen text, meta rows
 - `Inter_Bold18pt7b` — CO₂ fallback, info footer ("S//L")
