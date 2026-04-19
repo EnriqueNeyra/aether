@@ -9,7 +9,7 @@
 __pycache__/
 preview
 firmware/secrets.yaml
-firmware/components/aether_ui/aether_ui_html.h
+firmware/components/aether_web_ui/aether_web_ui_html.h
 
 # KiCad temporary files, caches, and locks
 *.kicad_prl

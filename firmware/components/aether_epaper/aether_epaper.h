@@ -22,12 +22,12 @@
 #include "Satoshi_800_Device_Information_Subset18pt7b.h"
 #include "Satoshi_800_Factory_Reset_Subset22pt7b.h"
 #include "Satoshi_800_Logo_Subset22pt7b.h"
-#include "aether_display_layout.h"
+#include "aether_epaper_layout.h"
 
 namespace aether
 {
 
-  namespace aether_display
+  namespace aether_epaper
   {
 
 // ==== SPI + Display Pin Configuration ====
@@ -143,30 +143,30 @@ namespace aether
 
     inline bool all_metrics_ready()
     {
-      return aether_display_layout::has_real_value(g_co2) &&
-             aether_display_layout::has_real_value(g_temp) &&
-             aether_display_layout::has_real_value(g_rh) &&
-             aether_display_layout::has_real_value(g_pm1) &&
-             aether_display_layout::has_real_value(g_pm25) &&
-             aether_display_layout::has_real_value(g_pm4) &&
-             aether_display_layout::has_real_value(g_pm10) &&
-             aether_display_layout::has_real_value(g_voc) &&
-             aether_display_layout::has_real_value(g_nox);
+      return aether_epaper_layout::has_real_value(g_co2) &&
+             aether_epaper_layout::has_real_value(g_temp) &&
+             aether_epaper_layout::has_real_value(g_rh) &&
+             aether_epaper_layout::has_real_value(g_pm1) &&
+             aether_epaper_layout::has_real_value(g_pm25) &&
+             aether_epaper_layout::has_real_value(g_pm4) &&
+             aether_epaper_layout::has_real_value(g_pm10) &&
+             aether_epaper_layout::has_real_value(g_voc) &&
+             aether_epaper_layout::has_real_value(g_nox);
     }
 
     inline void draw_boot_content(uint8_t frame)
     {
       display.setTextColor(GxEPD_BLACK);
-      aether_display_layout::print_left(display, g_boot_layout.left_x, g_boot_layout.baseline_y, &Satoshi_800_subset22pt7b, "Syntropy ");
+      aether_epaper_layout::print_left(display, g_boot_layout.left_x, g_boot_layout.baseline_y, &Satoshi_800_subset22pt7b, "Syntropy ");
 
       static constexpr const char *SLASHES[4] = {"//", " /", "  ", "/ "};
       const char *s = SLASHES[frame % 4];
       if (s[0] == '/')
-        aether_display_layout::print_left(display, g_boot_layout.slash_1_x, g_boot_layout.baseline_y, &Satoshi_800_subset22pt7b, "/");
+        aether_epaper_layout::print_left(display, g_boot_layout.slash_1_x, g_boot_layout.baseline_y, &Satoshi_800_subset22pt7b, "/");
       if (s[1] == '/')
-        aether_display_layout::print_left(display, g_boot_layout.slash_2_x, g_boot_layout.baseline_y, &Satoshi_800_subset22pt7b, "/");
+        aether_epaper_layout::print_left(display, g_boot_layout.slash_2_x, g_boot_layout.baseline_y, &Satoshi_800_subset22pt7b, "/");
 
-      aether_display_layout::print_left(display, g_boot_layout.right_x, g_boot_layout.baseline_y, &Satoshi_800_subset22pt7b, " Labs");
+      aether_epaper_layout::print_left(display, g_boot_layout.right_x, g_boot_layout.baseline_y, &Satoshi_800_subset22pt7b, " Labs");
     }
 
     // --- High-Level Renderers ---
@@ -193,9 +193,9 @@ namespace aether
           const char *s = SLASHES[frame % 4];
           display.setTextColor(GxEPD_BLACK);
           if (s[0] == '/')
-            aether_display_layout::print_left(display, g_boot_layout.slash_1_x, g_boot_layout.baseline_y, &Satoshi_800_subset22pt7b, "/");
+            aether_epaper_layout::print_left(display, g_boot_layout.slash_1_x, g_boot_layout.baseline_y, &Satoshi_800_subset22pt7b, "/");
           if (s[1] == '/')
-            aether_display_layout::print_left(display, g_boot_layout.slash_2_x, g_boot_layout.baseline_y, &Satoshi_800_subset22pt7b, "/");
+            aether_epaper_layout::print_left(display, g_boot_layout.slash_2_x, g_boot_layout.baseline_y, &Satoshi_800_subset22pt7b, "/");
           esphome::App.feed_wdt();
         } while (display.nextPage());
       }
@@ -205,8 +205,8 @@ namespace aether
     {
       render_paged(full, []()
                    {
-        aether_display_layout::Metrics m = {g_co2, g_temp, g_rh, g_pm1, g_pm25, g_pm4, g_pm10, g_voc, g_nox};
-        aether_display_layout::render_sketch_layout(display, m, g_use_f); });
+        aether_epaper_layout::Metrics m = {g_co2, g_temp, g_rh, g_pm1, g_pm25, g_pm4, g_pm10, g_voc, g_nox};
+        aether_epaper_layout::render_sketch_layout(display, m, g_use_f); });
       g_last_normal_render_ms = millis();
     }
 
@@ -277,8 +277,8 @@ namespace aether
     {
       const int max_width = display.width() - 32;
       const int full_width =
-          aether_display_layout::text_width(display, &Inter_Bold12pt7b, left_text) +
-          aether_display_layout::text_width(display, &Inter_Bold12pt7b, right_text) + 28;
+          aether_epaper_layout::text_width(display, &Inter_Bold12pt7b, left_text) +
+          aether_epaper_layout::text_width(display, &Inter_Bold12pt7b, right_text) + 28;
       return full_width > max_width ? &Inter_Bold9pt7b : &Inter_Bold12pt7b;
     }
 
@@ -287,17 +287,17 @@ namespace aether
       display.fillScreen(GxEPD_WHITE);
       display.setTextColor(GxEPD_BLACK);
 
-      aether_display_layout::print_centered(display, display.width() / 2, 36,
+      aether_epaper_layout::print_centered(display, display.width() / 2, 36,
                                             &Satoshi_800_Device_Information_Subset18pt7b,
                                             "Device Information");
-      aether_display_layout::draw_divider(display, 154, 261, 47);
+      aether_epaper_layout::draw_divider(display, 154, 261, 47);
     }
 
     inline void draw_info_meta_row(const char *left_text, const char *right_text)
     {
       const GFXfont *meta_font = info_meta_font(left_text, right_text);
-      aether_display_layout::print_left(display, 16, 72, meta_font, left_text);
-      aether_display_layout::print_right(display, display.width() - 16, 72, meta_font, right_text);
+      aether_epaper_layout::print_left(display, 16, 72, meta_font, left_text);
+      aether_epaper_layout::print_right(display, display.width() - 16, 72, meta_font, right_text);
     }
 
     inline void draw_info_cards(const char *left_label, const char *left_target,
@@ -313,8 +313,8 @@ namespace aether
       draw_connected_info_bracket(true);
       draw_connected_info_bracket(false);
 
-      aether_display_layout::print_centered(display, left_center_x, 123, &Inter_Bold9pt7b, left_label);
-      aether_display_layout::print_centered(display, right_center_x, 123, &Inter_Bold9pt7b, right_label);
+      aether_epaper_layout::print_centered(display, left_center_x, 123, &Inter_Bold9pt7b, left_label);
+      aether_epaper_layout::print_centered(display, right_center_x, 123, &Inter_Bold9pt7b, right_label);
 
       draw_info_qr_card(left_qr_x, qr_y, left_target);
       draw_info_qr_card(right_qr_x, qr_y, right_target);
@@ -354,11 +354,11 @@ namespace aether
     inline void draw_connected_info_bracket(bool left_side)
     {
       const int max_x = display.width() - 1;
-      aether::aether_display_layout::Point h_start = {28, 96};
-      aether::aether_display_layout::Point h_end = {160, 96};
-      aether::aether_display_layout::Point c_ctrl = {176, 96};
-      aether::aether_display_layout::Point c_end = {182, 114};
-      aether::aether_display_layout::Point d_end = {198, 162};
+      aether::aether_epaper_layout::Point h_start = {28, 96};
+      aether::aether_epaper_layout::Point h_end = {160, 96};
+      aether::aether_epaper_layout::Point c_ctrl = {176, 96};
+      aether::aether_epaper_layout::Point c_end = {182, 114};
+      aether::aether_epaper_layout::Point d_end = {198, 162};
 
       if (!left_side)
       {
@@ -369,9 +369,9 @@ namespace aether
         d_end.x = max_x - d_end.x;
       }
 
-      aether_display_layout::draw_stroked_line(display, h_start, h_end, 1);
-      aether_display_layout::draw_stroked_quadratic(display, h_end, c_ctrl, c_end, 1);
-      aether_display_layout::draw_stroked_line(display, c_end, d_end, 1);
+      aether_epaper_layout::draw_stroked_line(display, h_start, h_end, 1);
+      aether_epaper_layout::draw_stroked_quadratic(display, h_end, c_ctrl, c_end, 1);
+      aether_epaper_layout::draw_stroked_line(display, c_end, d_end, 1);
     }
 
     inline void render_info_connected()
@@ -383,7 +383,7 @@ namespace aether
       const std::string dashboard_target = info_dashboard_target();
 
       draw_info_header();
-      aether_display_layout::draw_info_triangle(display, display.width() - 18, 13, 14, 26);
+      aether_epaper_layout::draw_info_triangle(display, display.width() - 18, 13, 14, 26);
       draw_info_meta_row(host_text.c_str(), ip_text.c_str());
       draw_info_cards("Instructions", INFO_INSTRUCTIONS_URL,
                       "Local Dashboard", dashboard_target.c_str());
@@ -392,7 +392,7 @@ namespace aether
     inline void render_info_disconnected()
     {
       const std::string setup_ap_name = esphome::App.get_name();
-      aether_display_layout::render_disconnected_info_layout(
+      aether_epaper_layout::render_disconnected_info_layout(
           display, setup_ap_name.c_str(), INFO_INSTRUCTIONS_URL,
           [](int x, int y, const char *target, int scale, int padding)
           {
@@ -416,15 +416,15 @@ namespace aether
                    {
         display.fillScreen(GxEPD_WHITE);
         display.setTextColor(GxEPD_BLACK);
-        aether_display_layout::draw_info_triangle(display, display.width() - 18, 13, 14, 26);
+        aether_epaper_layout::draw_info_triangle(display, display.width() - 18, 13, 14, 26);
 
-        aether_display_layout::print_centered(display, display.width() / 2, 49,
+        aether_epaper_layout::print_centered(display, display.width() / 2, 49,
                                               &Satoshi_800_Factory_Reset_Subset22pt7b,
                                               "Factory Reset");
-        aether_display_layout::draw_divider(display, 155, 260, 68);
+        aether_epaper_layout::draw_divider(display, 155, 260, 68);
 
-        aether_display_layout::print_centered(display, display.width() / 2, 120, &Inter_Bold12pt7b, "Hold button (3s) to confirm");
-        aether_display_layout::print_centered(display, display.width() / 2, 160, &Inter_Bold12pt7b, "Click once to cancel"); });
+        aether_epaper_layout::print_centered(display, display.width() / 2, 120, &Inter_Bold12pt7b, "Hold button (3s) to confirm");
+        aether_epaper_layout::print_centered(display, display.width() / 2, 160, &Inter_Bold12pt7b, "Click once to cancel"); });
     }
 
     inline void redraw(bool full)
@@ -529,5 +529,5 @@ namespace aether
       }
     }
 
-  } // namespace aether_display
+  } // namespace aether_epaper
 } // namespace aether

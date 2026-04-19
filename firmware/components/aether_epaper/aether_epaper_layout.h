@@ -15,7 +15,7 @@ extern const GFXfont Satoshi_800_Device_Information_Subset18pt7b;
 namespace aether
 {
 
-  namespace aether_display_layout
+  namespace aether_epaper_layout
   {
 
     struct Metrics
@@ -515,5 +515,5 @@ namespace aether
       draw_pm_bottom_section(display, 351, 207, 286, 404, 233, "PM10", metrics.pm10, metrics.pm10 > 50.0f);
     }
 
-  } // namespace aether_display_layout
+  } // namespace aether_epaper_layout
 } // namespace aether

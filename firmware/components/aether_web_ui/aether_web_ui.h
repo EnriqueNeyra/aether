@@ -19,14 +19,14 @@ namespace aether
   using esphome::switch_::Switch;
   using esphome::update::UpdateEntity;
 
-  static const char *const TAG = "aether_ui";
+  static const char *const TAG = "aether_web_ui";
 
   // Full HTML/JS UI.
   // - Main tab: Environment (live metrics)
   // - Second tab: Firmware & Updates (one-click managed update via http_request)
-  #include "aether_ui_html.h"
+  #include "aether_web_ui_html.h"
 
-  class AetherUI : public esphome::Component, public AsyncWebHandler
+  class AetherWebUI : public esphome::Component, public AsyncWebHandler
   {
   public:
     void set_co2(Sensor *s) { co2_ = s; }

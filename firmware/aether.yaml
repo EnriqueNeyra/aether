@@ -9,16 +9,16 @@ esphome:
     name: "neyra.aether"
     version: ${fw_version}
   includes:
-    - components/aether_display/aether_display.h
-    - components/aether_display/aether_display_layout.h
-    - components/aether_display/fonts/Inter_Bold9pt7b.h
-    - components/aether_display/fonts/Inter_Bold12pt7b.h
-    - components/aether_display/fonts/Inter_Bold18pt7b.h
-    - components/aether_display/fonts/Inter_Bold_Tabular18pt7b.h
-    - components/aether_display/fonts/Inter_Bold_Tabular24pt7b.h
-    - components/aether_display/fonts/Satoshi_800_Device_Information_Subset18pt7b.h
-    - components/aether_display/fonts/Satoshi_800_Factory_Reset_Subset22pt7b.h
-    - components/aether_display/fonts/Satoshi_800_Logo_Subset22pt7b.h
+    - components/aether_epaper/aether_epaper.h
+    - components/aether_epaper/aether_epaper_layout.h
+    - components/aether_epaper/fonts/Inter_Bold9pt7b.h
+    - components/aether_epaper/fonts/Inter_Bold12pt7b.h
+    - components/aether_epaper/fonts/Inter_Bold18pt7b.h
+    - components/aether_epaper/fonts/Inter_Bold_Tabular18pt7b.h
+    - components/aether_epaper/fonts/Inter_Bold_Tabular24pt7b.h
+    - components/aether_epaper/fonts/Satoshi_800_Device_Information_Subset18pt7b.h
+    - components/aether_epaper/fonts/Satoshi_800_Factory_Reset_Subset22pt7b.h
+    - components/aether_epaper/fonts/Satoshi_800_Logo_Subset22pt7b.h
 
   on_boot:
     priority: -100 # Run after all sensors/components are initialized
@@ -100,12 +100,12 @@ binary_sensor:
           - ON for 50ms to 1s
         then:
           - lambda: |-
-              aether::aether_display::on_short_press();
+              aether::aether_epaper::on_short_press();
       - timing:
           - ON for at least 3s
         then:
           - lambda: |-
-              if (aether::aether_display::on_long_press()) {
+              if (aether::aether_epaper::on_long_press()) {
                 id(aether_factory_reset).press();
               }
 captive_portal:
@@ -130,7 +130,7 @@ external_components:
   - source:
       type: local
       path: components
-    components: [aether_ui]
+    components: [aether_web_ui]
   - source:
       type: git
       url: https://github.com/esphome/esphome
@@ -191,7 +191,7 @@ sensor:
       name: "Humidity"
 
 # ── Aether custom UI component (external) ───────────────────────────────────────
-aether_ui:
+aether_web_ui:
   co2: co2
   pm25: pm2_5
   temp: temp
@@ -210,7 +210,7 @@ interval:
   - interval: 500ms
     then:
       - lambda: |-
-          aether::aether_display::tick_and_draw(
+          aether::aether_epaper::tick_and_draw(
             id(co2).state,
             id(temp).state,
             id(rh).state,

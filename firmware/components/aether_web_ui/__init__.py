@@ -24,7 +24,7 @@ def _generate_html_header():
     html = html.replace('<script src="app.js"></script>', f'<script>\n{js}\n</script>')
 
     header = f'static const char INDEX_HTML[] = R"HTML({html})HTML";\n'
-    with open(os.path.join(_BASE_DIR, 'aether_ui_html.h'), 'w') as f:
+    with open(os.path.join(_BASE_DIR, 'aether_web_ui_html.h'), 'w') as f:
         f.write(header)
 
 
@@ -32,7 +32,7 @@ def _generate_html_header():
 _generate_html_header()
 
 aether_ns = cg.esphome_ns.namespace("aether")
-AetherUI = aether_ns.class_("AetherUI", cg.Component)
+AetherWebUI = aether_ns.class_("AetherWebUI", cg.Component)
 
 CONF_CO2 = "co2"
 CONF_PM25 = "pm25"
@@ -48,7 +48,7 @@ CONF_TEMP_UNIT_SWITCH = "temp_unit_switch"
 
 CONFIG_SCHEMA = cv.Schema(
     {
-        cv.GenerateID(CONF_ID): cv.declare_id(AetherUI),
+        cv.GenerateID(CONF_ID): cv.declare_id(AetherWebUI),
 
         cv.Required(CONF_CO2): cv.use_id(sensor.Sensor),
         cv.Required(CONF_PM25): cv.use_id(sensor.Sensor),
