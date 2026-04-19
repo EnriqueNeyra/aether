@@ -1,10 +1,13 @@
 {
-  "name": "Aether",
+  "name": "neyra.aether",
   "version": "1.0.0",
-  "ota": [
+  "builds": [
     {
-      "platform": "esp32",
-      "path": "https://github.com/enriqueneyra/aether/releases/latest/download/aether.bin"
+      "chipFamily": "ESP32-C3",
+      "ota": {
+        "path": "https://github.com/enriqueneyra/aether/releases/latest/download/aether.bin",
+        "md5": ""
+      }
     }
   ]
 }
