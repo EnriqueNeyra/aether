@@ -1,4 +1,10 @@
 {
+  "name": "Aether",
   "version": "1.0.0",
-  "url": "https://github.com/enriqueneyra/aether/releases/latest/download/aether.bin"
+  "ota": [
+    {
+      "platform": "esp32",
+      "path": "https://github.com/enriqueneyra/aether/releases/latest/download/aether.bin"
+    }
+  ]
 }
