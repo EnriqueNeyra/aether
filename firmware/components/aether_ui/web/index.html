@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Aether Air Quality Monitor</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="shell">
+    <div class="frame">
+      <div class="header">
+        <div class="title-block">
+          <div class="pill"></div>
+          <div>
+            <h1>Aether</h1>
+            <p class="subtitle">Local live view · Air quality telemetry</p>
+          </div>
+        </div>
+        <div class="status-chip">
+          <span class="status-dot"></span>
+          <span id="status-text">Live</span>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <div class="tab-buttons">
+          <button class="tab-btn tab-btn--active" data-tab="env">Environment</button>
+          <button class="tab-btn" data-tab="fw">Firmware &amp; updates</button>
+        </div>
+
+        <div class="tab-panels">
+          <!-- Environment tab -->
+          <div class="tab-panel tab-panel--active" id="tab-env">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">Environment</div>
+                  <div class="card-subtitle">Live sensor snapshot</div>
+                </div>
+                <div class="unit-toggle">
+                  <button class="unit-btn unit-btn--active" data-unit="F">°F</button>
+                  <button class="unit-btn" data-unit="C">°C</button>
+                </div>
+              </div>
+              <div class="metrics-grid" id="metrics"></div>
+              <div class="chip-row">
+                <div class="chip" id="chip-last-updated">Last updated: —</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Firmware tab -->
+          <div class="tab-panel" id="tab-fw">
+            <div class="firmware-card">
+              <div class="firmware-inner">
+                <div class="fw-pill">
+                  <div class="fw-pill-dot"></div>
+                  <span>Firmware</span>
+                </div>
+
+                <div class="fw-title-row">
+                  <h2 class="fw-title">Firmware & Updates</h2>
+                  <div id="fw-badge" class="fw-badge fw-badge--unknown">Checking…</div>
+                </div>
+
+                <p class="fw-sub">
+                  Manage firmware here when your Aether is on your home network.
+                  When an update is available, click the button below and the
+                  device will download and install it over Wi-Fi.
+                </p>
+
+                <div class="fw-meta">
+                  <span>Current firmware: <strong id="fw-current">—</strong></span>
+                  <span>Latest available: <strong id="fw-latest">—</strong></span>
+                </div>
+
+                <div class="fw-actions">
+                  <button type="button" class="fw-btn" id="fw-update-btn" disabled>
+                    Update firmware
+                  </button>
+                </div>
+
+                <div class="fw-status-text" id="fw-status-text">
+                  Checking for updates…
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer">
+        <span id="footer-ip">Device: aether.local</span>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

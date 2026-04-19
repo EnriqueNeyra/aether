@@ -10,11 +10,20 @@ esphome:
     version: ${fw_version}
   includes:
     - components/aether_display/aether_display.h
+    - components/aether_display/aether_display_layout.h
+    - components/aether_display/fonts/Inter_Bold9pt7b.h
+    - components/aether_display/fonts/Inter_Bold12pt7b.h
+    - components/aether_display/fonts/Inter_Bold18pt7b.h
+    - components/aether_display/fonts/Inter_Bold_Tabular18pt7b.h
+    - components/aether_display/fonts/Inter_Bold_Tabular24pt7b.h
+    - components/aether_display/fonts/Satoshi_800_Device_Information_Subset18pt7b.h
+    - components/aether_display/fonts/Satoshi_800_Factory_Reset_Subset22pt7b.h
+    - components/aether_display/fonts/Satoshi_800_Logo_Subset22pt7b.h
 
   on_boot:
     priority: -100 # Run after all sensors/components are initialized
     then:
-      - delay: 5min # Duration the AP remains active for setup
+      - delay: 10min # Duration the AP remains active for setup
       - if:
           condition:
             not:
@@ -29,6 +38,7 @@ esphome:
       - zinggjm/GxEPD2@^1.6.4
       - adafruit/Adafruit GFX Library@^1.12.3
       - adafruit/Adafruit BusIO@^1.15.0
+      - ricmoo/QRCode@^0.0.1
 
 esp32:
   board: esp32-c3-devkitm-1
@@ -38,6 +48,19 @@ esp32:
 
 logger:
   level: INFO
+
+button:
+  - platform: factory_reset
+    name: "Factory Reset"
+    id: aether_factory_reset
+
+switch:
+  - platform: template
+    name: "Temperature Unit (Celsius)"
+    id: temp_unit_c_switch
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    icon: "mdi:temperature-celsius"
 
 api:
   reboot_timeout: 0s
@@ -63,9 +86,32 @@ wifi:
   reboot_timeout: 0s
   power_save_mode: NONE
   fast_connect: false
+
 binary_sensor:
+  - platform: gpio
+    pin:
+      number: 9
+      inverted: true
+      mode: INPUT_PULLUP
+    name: "Boot Button"
+    id: boot_button
+    on_multi_click:
+      - timing:
+          - ON for 50ms to 1s
+        then:
+          - lambda: |-
+              aether::aether_display::on_short_press();
+      - timing:
+          - ON for at least 3s
+        then:
+          - lambda: |-
+              if (aether::aether_display::on_long_press()) {
+                id(aether_factory_reset).press();
+              }
 captive_portal:
 improv_serial:
+esp32_improv:
+  authorizer: none
 
 mdns:
   services:
@@ -94,7 +140,7 @@ external_components:
 # ─── Buses ─────────────────────────────────────────────────────────────────────
 
 i2c:
-  sda: 8
+  sda: 10
   scl: 0
   scan: true
   id: bus_a
@@ -156,21 +202,23 @@ aether_ui:
   voc: voc_index
   nox: nox_index
   fw_update: aether_fw_update
+  temp_unit_switch: temp_unit_c_switch
 
 # ─── Main UI / E-paper render loop ────────────────────────────────────────────
 
 interval:
-  - interval: 5s
+  - interval: 500ms
     then:
       - lambda: |-
           aether::aether_display::tick_and_draw(
-            (uint16_t)(isnan(id(co2).state)   ? 0 : id(co2).state),
-            isnan(id(temp).state)             ? 0 : id(temp).state,
-            isnan(id(rh).state)               ? 0 : id(rh).state,
-            isnan(id(pm1_0).state)            ? 0 : id(pm1_0).state,
-            isnan(id(pm2_5).state)            ? 0 : id(pm2_5).state,
-            isnan(id(pm4_0).state)            ? 0 : id(pm4_0).state,
-            isnan(id(pm10_0).state)           ? 0 : id(pm10_0).state,
-            isnan(id(voc_index).state)        ? 0 : id(voc_index).state,
-            isnan(id(nox_index).state)        ? 0 : id(nox_index).state
+            id(co2).state,
+            id(temp).state,
+            id(rh).state,
+            id(pm1_0).state,
+            id(pm2_5).state,
+            id(pm4_0).state,
+            id(pm10_0).state,
+            id(voc_index).state,
+            id(nox_index).state,
+            !id(temp_unit_c_switch).state
           );
