@@ -118,6 +118,18 @@ namespace aether
       display.print(text);
     }
 
+    template <typename Display>
+    inline void draw_alert_if_needed(Display &display, const GFXfont *font,
+                                     const char *text, int center_x, int baseline_y,
+                                     bool alert, int icon_offset = 17, int icon_size = 24)
+    {
+      if (!alert) return;
+      int16_t x1, y1; uint16_t w, h;
+      measure_text(display, font, text, x1, y1, w, h);
+      int cy = baseline_y + y1 + (int)h / 2;
+      draw_caution_icon(display, center_x + (int)w / 2 + icon_offset, cy, icon_size);
+    }
+
     inline void format_metric(char *buf, size_t size, float value, const char *format)
     {
       if (has_real_value(value)) snprintf(buf, size, format, value);
@@ -131,14 +143,11 @@ namespace aether
       return true;
     }
 
-    inline const GFXfont *metric_value_font_24(const char *text)
+    inline const GFXfont *metric_value_font(const char *text,
+                                             const GFXfont *tabular,
+                                             const GFXfont *fallback)
     {
-      return is_digits_subset_text(text) ? &Inter_Bold_Tabular24pt7b : &Inter_Bold18pt7b;
-    }
-
-    inline const GFXfont *metric_value_font_small(const char *text)
-    {
-      return is_digits_subset_text(text) ? &Inter_Bold_Tabular18pt7b : &Inter_Bold18pt7b;
+      return is_digits_subset_text(text) ? tabular : fallback;
     }
 
     template <typename Display>
@@ -219,56 +228,26 @@ namespace aether
     }
 
     template <typename Display>
-    inline void draw_pm_corner_section(Display &display, int label_x, int unit_right_x, int label_y, int value_center_x, int value_y, const char *label, float value, bool alert)
+    inline void draw_pm_section(Display &display, int label_x, int unit_right_x, int label_y, int value_center_x, int value_y, const char *label, float value, bool alert)
     {
       char buf[16]; format_metric(buf, sizeof(buf), value, "%.1f");
-      const GFXfont *v_font = metric_value_font_small(buf);
+      const GFXfont *v_font = metric_value_font(buf, &Inter_Bold_Tabular18pt7b, &Inter_Bold18pt7b);
+      int adj_cx = alert ? value_center_x - 12 : value_center_x;
       print_left(display, label_x, label_y, kSmallLabelFont, label);
       draw_ugm3_right(display, unit_right_x, label_y);
-      int adj_cx = alert ? value_center_x - 12 : value_center_x;
       print_centered(display, adj_cx, value_y, v_font, buf);
-      if (alert) {
-        int16_t x1, y1; uint16_t w, h;
-        display.setFont(v_font);
-        display.getTextBounds(buf, 0, 0, &x1, &y1, &w, &h);
-        int cy = value_y + y1 + (int)h / 2;
-        draw_caution_icon(display, adj_cx + (int)w / 2 + 17, cy, 24);
-      }
-    }
-
-    template <typename Display>
-    inline void draw_pm_bottom_section(Display &display, int value_center_x, int value_y, int label_x, int unit_right_x, int label_y, const char *label, float value, bool alert)
-    {
-      char buf[16]; format_metric(buf, sizeof(buf), value, "%.1f");
-      const GFXfont *v_font = metric_value_font_small(buf);
-      int adj_cx = alert ? value_center_x - 12 : value_center_x;
-      print_centered(display, adj_cx, value_y, v_font, buf);
-      print_left(display, label_x, label_y, kSmallLabelFont, label);
-      draw_ugm3_right(display, unit_right_x, label_y);
-      if (alert) {
-        int16_t x1, y1; uint16_t w, h;
-        display.setFont(v_font);
-        display.getTextBounds(buf, 0, 0, &x1, &y1, &w, &h);
-        int cy = value_y + y1 + (int)h / 2;
-        draw_caution_icon(display, adj_cx + (int)w / 2 + 17, cy, 24);
-      }
+      draw_alert_if_needed(display, v_font, buf, adj_cx, value_y, alert);
     }
 
     template <typename Display>
     inline void draw_index_section(Display &display, int label_x, int unit_right_x, int label_y, int value_center_x, int value_y, const char *label, float value, bool alert)
     {
       char buf[16]; format_metric(buf, sizeof(buf), value, "%.0f");
-      const GFXfont *v_font = metric_value_font_small(buf);
+      const GFXfont *v_font = metric_value_font(buf, &Inter_Bold_Tabular18pt7b, &Inter_Bold18pt7b);
       print_left(display, label_x, label_y, kSmallLabelFont, label);
       print_right(display, unit_right_x, label_y, kSmallLabelFont, "Index");
       print_centered(display, value_center_x, value_y, v_font, buf);
-      if (alert) {
-        int16_t x1, y1; uint16_t w, h;
-        display.setFont(v_font);
-        display.getTextBounds(buf, 0, 0, &x1, &y1, &w, &h);
-        int cy = value_y + y1 + (int)h / 2;
-        draw_caution_icon(display, value_center_x + (int)w / 2 + 17, cy, 24);
-      }
+      draw_alert_if_needed(display, v_font, buf, value_center_x, value_y, alert);
     }
 
     template <typename Display>
@@ -313,33 +292,16 @@ namespace aether
     }
 
     template <typename Display>
-    inline void draw_outline_rect(Display &display, int x, int y, int w, int h)
-    {
-      display.drawLine(x, y, x + w - 1, y, GxEPD_BLACK);
-      display.drawLine(x, y + h - 1, x + w - 1, y + h - 1, GxEPD_BLACK);
-      display.drawLine(x, y, x, y + h - 1, GxEPD_BLACK);
-      display.drawLine(x + w - 1, y, x + w - 1, y + h - 1, GxEPD_BLACK);
-    }
-
-    template <typename Display>
     inline void draw_info_triangle(Display &display, int x, int y, int width, int height)
     {
       display.fillTriangle(x, y, x, y + height, x + width, y + height / 2, GxEPD_BLACK);
     }
 
     template <typename Display>
-    inline void draw_info_underline(Display &display, int start_x, int end_x, int y)
-    {
-      display.drawLine(start_x + 1, y - 1, end_x - 1, y - 1, GxEPD_BLACK);
-      display.drawLine(start_x, y, end_x, y, GxEPD_BLACK);
-      display.drawLine(start_x + 1, y + 1, end_x - 1, y + 1, GxEPD_BLACK);
-    }
-
-    template <typename Display>
     inline void draw_centered_info_underline(Display &display, int center_x, int y, int width)
     {
       const int start_x = center_x - width / 2;
-      draw_info_underline(display, start_x, start_x + width, y);
+      draw_divider(display, start_x, start_x + width, y);
     }
 
     template <typename Display>
@@ -365,7 +327,7 @@ namespace aether
 
       const int inner_x = mirror_x ? x + 11 : x + 4;
       const int inner_y = mirror_y ? y + 10 : y + 5;
-      draw_outline_rect(display, inner_x, inner_y, 9, 9);
+      display.drawRect(inner_x, inner_y, 9, 9, GxEPD_BLACK);
     }
 
     template <typename Display>
@@ -492,27 +454,21 @@ namespace aether
       draw_corner_brace(display, true, false); draw_corner_brace(display, false, false);
       draw_divider(display, 164, 251, 79); draw_divider(display, 164, 251, 172);
 
-      draw_pm_corner_section(display, 12, 125, 23, 64, 64, "PM1", metrics.pm1, metrics.pm1 > 15.0f);
-      draw_pm_corner_section(display, 286, 404, 23, 351, 64, "PM2.5", metrics.pm25, metrics.pm25 > 15.0f);
+      draw_pm_section(display, 12, 125, 23, 64, 64, "PM1", metrics.pm1, metrics.pm1 > 15.0f);
+      draw_pm_section(display, 286, 404, 23, 351, 64, "PM2.5", metrics.pm25, metrics.pm25 > 15.0f);
       draw_temp_reading(display, 208, 53, display_temp, use_f ? 'F' : 'C');
 
       draw_index_section(display, 12, 121, 105, 63, 149, "VOC", metrics.voc, metrics.voc > 250.0f);
       print_left(display, 156, 105, kSmallLabelFont, "CO2");
       print_right(display, 259, 105, kSmallLabelFont, "ppm");
-      const GFXfont *co2_font = metric_value_font_24(co2_buf);
+      const GFXfont *co2_font = metric_value_font(co2_buf, &Inter_Bold_Tabular24pt7b, &Inter_Bold18pt7b);
       print_centered(display, 208, 153, co2_font, co2_buf);
-      if (metrics.co2 > 1000.0f) {
-        int16_t x1, y1; uint16_t w, h;
-        display.setFont(co2_font);
-        display.getTextBounds(co2_buf, 0, 0, &x1, &y1, &w, &h);
-        int cy = 153 + y1 + (int)h / 2;
-        draw_caution_icon(display, 208 + (int)w / 2 + 21, cy, 30);
-      }
+      draw_alert_if_needed(display, co2_font, co2_buf, 208, 153, metrics.co2 > 1000.0f, 21, 30);
       draw_index_section(display, 295, 404, 105, 349, 149, "NOx", metrics.nox, metrics.nox > 100.0f);
 
-      draw_pm_bottom_section(display, 64, 207, 12, 125, 233, "PM4", metrics.pm4, metrics.pm4 > 30.0f);
+      draw_pm_section(display, 12, 125, 233, 64, 207, "PM4", metrics.pm4, metrics.pm4 > 30.0f);
       draw_humidity_reading(display, 208, 216, metrics.rh);
-      draw_pm_bottom_section(display, 351, 207, 286, 404, 233, "PM10", metrics.pm10, metrics.pm10 > 50.0f);
+      draw_pm_section(display, 286, 404, 233, 351, 207, "PM10", metrics.pm10, metrics.pm10 > 50.0f);
     }
 
   } // namespace aether_epaper_layout
