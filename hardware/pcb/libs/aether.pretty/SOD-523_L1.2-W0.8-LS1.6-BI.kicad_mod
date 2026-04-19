@@ -1,0 +1,129 @@
+(footprint "SOD-523_L1.2-W0.8-LS1.6-BI"
+	(version 20241229)
+	(generator "pcbnew")
+	(generator_version "9.0")
+	(layer "F.Cu")
+	(property "Reference" "REF**"
+		(at 0 -4 0)
+		(layer "F.SilkS")
+		(uuid "ee4cdcd9-0b56-4700-916c-63b03ed6713f")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Value" "SOD-523_L1.2-W0.8-LS1.6-BI"
+		(at 0 4 0)
+		(layer "F.Fab")
+		(uuid "bb3e0c8b-afbf-4fbc-aaf4-397ce3a8fa98")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Datasheet" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "c063a4ce-0e9e-4b7e-b548-9866abb179ed")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Description" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "2a3c4164-3f4f-446e-8f14-232da3602931")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(attr smd)
+	(fp_line
+		(start -0.65 -0.5)
+		(end 0.65 -0.5)
+		(stroke
+			(width 0.13)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "74dbc7d5-70e2-4391-91fc-2d209c179287")
+	)
+	(fp_line
+		(start -0.65 0.5)
+		(end 0.65 0.5)
+		(stroke
+			(width 0.13)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "8ea96c49-4b4a-495e-b87e-d98751e8f353")
+	)
+	(fp_line
+		(start 0 -0.23)
+		(end 0 0.25)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "43415cf1-0c44-43c3-8003-8f162b43d020")
+	)
+	(fp_circle
+		(center -0.8 0.4)
+		(end -0.77 0.4)
+		(stroke
+			(width 0.06)
+			(type solid)
+		)
+		(fill no)
+		(layer "F.Fab")
+		(uuid "cbb7eb63-9d95-4e70-817c-1c6cf038bfc7")
+	)
+	(fp_text user "${REFERENCE}"
+		(at 0 0 0)
+		(layer "F.Fab")
+		(uuid "bc2e7420-b62c-4789-b88f-8bc9ae5629b3")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(pad "1" smd rect
+		(at -0.75 0)
+		(size 0.6 0.4)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "2e6fd8f9-7051-4ee2-9607-e5fc56102e55")
+	)
+	(pad "2" smd rect
+		(at 0.75 0 180)
+		(size 0.6 0.4)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "705c1b53-607e-467a-8754-22c03c84c4b8")
+	)
+	(embedded_fonts no)
+	(model "${KIPRJMOD}/libs/aether.3dshapes/SOD-523_L1.2-W0.8-LS1.6-BI.step"
+		(offset
+			(xyz 0.21 0 0.7)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz -0 -0 -0)
+		)
+	)
+)

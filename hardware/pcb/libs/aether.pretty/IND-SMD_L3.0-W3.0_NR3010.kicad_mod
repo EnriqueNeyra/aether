@@ -1,0 +1,119 @@
+(footprint "IND-SMD_L3.0-W3.0_NR3010"
+	(version 20241229)
+	(generator "pcbnew")
+	(generator_version "9.0")
+	(layer "F.Cu")
+	(property "Reference" "REF**"
+		(at 0 -4 0)
+		(layer "F.SilkS")
+		(uuid "bf31aa0d-8f25-4a52-a275-db7af05ad16d")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Value" "IND-SMD_L3.0-W3.0_NR3010"
+		(at 0 4 0)
+		(layer "F.Fab")
+		(uuid "a0210e7d-2b49-459e-ba14-7fb4122bec21")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Datasheet" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "cb7ec95b-da9f-43b2-aeee-361967c3dc7e")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Description" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "6b6f5006-30ce-4150-932c-6de8f9be204b")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(attr smd)
+	(fp_line
+		(start -0.01 1.5)
+		(end 0.1 1.5)
+		(stroke
+			(width 0.25)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "3af8abad-257d-421a-b1a3-5bf641b8992e")
+	)
+	(fp_line
+		(start -0.00875 -1.5)
+		(end 0.1 -1.5)
+		(stroke
+			(width 0.25)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "c89fa407-c999-4d9c-ada5-0a6e57e3eb52")
+	)
+	(fp_circle
+		(center -1.5 1.5)
+		(end -1.47 1.5)
+		(stroke
+			(width 0.06)
+			(type solid)
+		)
+		(fill no)
+		(layer "F.Fab")
+		(uuid "a070c6ea-eefc-4a0b-a04b-70e663160581")
+	)
+	(fp_text user "${REFERENCE}"
+		(at 0 0 0)
+		(layer "F.Fab")
+		(uuid "5adf2eec-513d-41e3-800d-db71d2ccb724")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(pad "1" smd rect
+		(at -1.05 0)
+		(size 1.3 3)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "b123d3d2-2c87-4314-8ad7-5e84e5dc9ddd")
+	)
+	(pad "2" smd rect
+		(at 1.05 0)
+		(size 1.2 3)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "3761a471-eb49-49a3-bf10-8ec2efd0aaab")
+	)
+	(embedded_fonts no)
+	(model "${KIPRJMOD}/libs/aether.3dshapes/IND-SMD_L3.0-W3.0_NR3010.step"
+		(offset
+			(xyz 0 -0 0)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz 0 0 0)
+		)
+	)
+)
