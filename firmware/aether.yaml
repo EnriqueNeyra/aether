@@ -1,5 +1,5 @@
 substitutions:
-  fw_version: "1.0.0"
+  fw_version: "1.0.1"
 
 esphome:
   name: aether
@@ -86,6 +86,10 @@ wifi:
   reboot_timeout: 0s
   power_save_mode: NONE
   fast_connect: false
+  on_connect:
+    - delay: 5s
+    - lambda: |-
+        id(aether_fw_update).update();
 
 binary_sensor:
   - platform: gpio
