@@ -1,0 +1,15 @@
+{
+  "name": "Aeroq Air Quality Monitor",
+  "version": "1.0.2",
+  "builds": [
+    {
+      "chipFamily": "ESP32-C3",
+      "parts": [
+        {
+          "path": "https://github.com/enriqueneyra/aether/releases/latest/download/aether-factory.bin",
+          "offset": 0
+        }
+      ]
+    }
+  ]
+}

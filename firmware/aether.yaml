@@ -1,12 +1,12 @@
 substitutions:
-  fw_version: "1.0.1"
+  fw_version: "1.0.2"
 
 esphome:
   name: aether
   name_add_mac_suffix: true
   friendly_name: Aether AQMonitor
   project:
-    name: "neyra.aether"
+    name: "syntropylabs.aether"
     version: ${fw_version}
   includes:
     - components/aether_epaper/aether_epaper.h
@@ -29,8 +29,14 @@ esphome:
             not:
               wifi.connected:
           then:
-            - logger.log: "No WiFi configured. Disabling AP to enter Offline Mode."
-            - wifi.disable:
+            - if:
+                condition:
+                  lambda: "return wifi::global_wifi_component->has_sta();"
+                then:
+                  - logger.log: "WiFi credentials saved but not connected. Keeping WiFi active to retry."
+                else:
+                  - logger.log: "No WiFi configured. Disabling WiFi to enter Offline Mode."
+                  - wifi.disable:
 
   platformio_options:
     lib_ldf_mode: deep+
@@ -54,13 +60,17 @@ button:
     name: "Factory Reset"
     id: aether_factory_reset
 
-switch:
+select:
   - platform: template
-    name: "Temperature Unit (Celsius)"
-    id: temp_unit_c_switch
+    name: "Temperature Unit"
+    id: temp_unit_select
+    options:
+      - "Fahrenheit"
+      - "Celsius"
+    initial_option: "Fahrenheit"
     optimistic: true
-    restore_mode: RESTORE_DEFAULT_OFF
-    icon: "mdi:temperature-celsius"
+    restore_value: true
+    icon: "mdi:thermometer"
 
 api:
   reboot_timeout: 0s
@@ -77,7 +87,7 @@ update:
   - platform: http_request
     id: aether_fw_update
     name: "Aether Firmware"
-    source: "https://enriqueneyra.github.io/aether/ota-manifest.json"
+    source: "https://enriqueneyra.github.io/aether/flash/ota-manifest.json"
     update_interval: 24h
 
 wifi:
@@ -99,6 +109,7 @@ binary_sensor:
       mode: INPUT_PULLUP
     name: "Boot Button"
     id: boot_button
+    internal: true
     on_multi_click:
       - timing:
           - ON for 50ms to 1s
@@ -151,7 +162,7 @@ sensor:
     id: sen66_component
     i2c_id: bus_a
     address: 0x6B
-    update_interval: 10s
+    update_interval: 5s
 
     # PM values
     pm_1_0:
@@ -200,7 +211,7 @@ aether_web_ui:
   voc: voc_index
   nox: nox_index
   fw_update: aether_fw_update
-  temp_unit_switch: temp_unit_c_switch
+  temp_unit_switch: temp_unit_select
 
 # ─── Main UI / E-paper render loop ────────────────────────────────────────────
 
@@ -218,5 +229,5 @@ interval:
             id(pm10_0).state,
             id(voc_index).state,
             id(nox_index).state,
-            !id(temp_unit_c_switch).state
+            id(temp_unit_select).current_option() != "Celsius"
           );

@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Aether • Firmware Flashing Tool</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <style>
+      :root {
+        --bg: #05060a;
+        --card-bg: #111319;
+        --accent: #ffffff;
+        --accent-soft: rgba(255, 255, 255, 0.1);
+        --text-main: #f5f7ff;
+        --text-muted: #9aa0b7;
+        --border: #222633;
+        --radius-xl: 24px;
+        --radius-lg: 18px;
+        --radius-md: 10px;
+        --shadow-soft: 0 18px 45px rgba(0, 0, 0, 0.45);
+      }
+
+      * {
+        box-sizing: border-box;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+          "Segoe UI", sans-serif;
+        color: var(--text-main);
+        background: radial-gradient(circle at top, #171b2c 0, #05060a 55%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+      }
+
+      .page {
+        width: 100%;
+        max-width: 960px;
+        display: flex;
+        justify-content: center;
+      }
+
+      .shell {
+        width: 100%;
+        max-width: 720px;
+        padding: 24px;
+      }
+
+      .frame {
+        background: radial-gradient(circle at top left, #252b3d 0, #111319 50%);
+        border-radius: var(--radius-xl);
+        padding: 22px 22px 20px;
+        box-shadow: var(--shadow-soft);
+        border: 1px solid rgba(255, 255, 255, 0.04);
+        backdrop-filter: blur(22px);
+      }
+
+      .main {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .title-block {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .pill {
+        width: 11px;
+        height: 32px;
+        border-radius: 50px;
+        background: linear-gradient(180deg, #ffffff, #a0a4b8);
+        box-shadow: 0 0 12px rgba(255, 255, 255, 0.3);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 20px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        font-weight: 650;
+      }
+
+      .subtitle {
+        margin: 0;
+        margin-top: 2px;
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+
+      .status-chip {
+        padding: 6px 12px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #ffffff;
+      }
+
+      .status-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 999px;
+        background: #ffffff;
+        box-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
+      }
+
+      .hero {
+        background: var(--card-bg);
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border);
+        padding: 16px;
+      }
+
+      .hero-copy {
+        font-size: 13px;
+        line-height: 1.6;
+        color: var(--text-muted);
+        margin: 0;
+      }
+
+      .chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 12px;
+      }
+
+      .chip {
+        font-size: 11px;
+        padding: 4px 9px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        background: rgba(0, 0, 0, 0.18);
+        color: var(--text-muted);
+      }
+
+      .actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .action-card {
+        border-radius: var(--radius-lg);
+        border: 1px solid rgba(255, 255, 255, 0.04);
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .action-card--standard {
+        background: radial-gradient(circle at top, #232636 0, #151722 45%);
+      }
+
+      .action-card--feature {
+        background: radial-gradient(circle at top, #1d1523 0, #151220 45%);
+      }
+
+      .action-card--feature::before {
+        content: "";
+        position: absolute;
+        inset: -80px;
+        background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.08) 0, transparent 55%);
+        opacity: 0.9;
+        pointer-events: none;
+      }
+
+      .action-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 12px;
+      }
+
+      .action-title {
+        font-size: 14px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+      }
+
+      .action-desc {
+        font-size: 11px;
+        line-height: 1.5;
+        color: var(--text-muted);
+      }
+
+      .badge {
+        font-size: 10px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        background: rgba(0, 0, 0, 0.25);
+        color: var(--text-muted);
+        white-space: nowrap;
+      }
+
+      .badge--primary {
+        border-color: rgba(255, 255, 255, 0.6);
+        color: #ffffff;
+        background: rgba(255, 255, 255, 0.1);
+      }
+
+      .badge--warn {
+        border-color: #ffb347;
+        color: #ffcf7f;
+        background: rgba(255, 179, 71, 0.1);
+      }
+
+      .action-meta {
+        display: grid;
+        gap: 4px;
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+
+      .action-meta strong {
+        color: var(--text-main);
+        font-weight: 500;
+      }
+
+      .file-row {
+        margin-top: auto;
+        padding-top: 4px;
+      }
+
+      esp-web-install-button {
+        --esp-tools-button-background: #ffffff;
+        --esp-tools-button-border-radius: 999px;
+        --esp-tools-button-padding: 8px 16px;
+        --esp-tools-button-color: #000000;
+        --esp-tools-button-font-weight: 600;
+        --esp-tools-button-font-size: 11px;
+        --esp-tools-button-border: none;
+        --esp-tools-button-hover-background: rgba(255, 255, 255, 0.92);
+        --esp-tools-button-disabled-background: rgba(255, 255, 255, 0.18);
+        --esp-tools-button-disabled-color: rgba(255, 255, 255, 0.5);
+      }
+
+      .notes {
+        display: flex;
+        justify-content: flex-end;
+        font-size: 10px;
+        color: var(--text-muted);
+        opacity: 0.7;
+      }
+
+      @media (max-width: 768px) {
+        body {
+          padding: 18px;
+        }
+
+        .shell {
+          padding: 0;
+        }
+
+        .frame {
+          padding: 18px 16px 16px;
+        }
+
+        .header {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        .actions {
+          grid-template-columns: 1fr;
+        }
+
+        .action-header {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="page">
+      <div class="shell">
+        <div class="frame">
+          <section class="main">
+            <div class="header">
+              <div class="title-block">
+                <div class="pill"></div>
+                <div>
+                  <h1>Aether</h1>
+                  <p class="subtitle">USB flashing · Setup, recovery, and updates</p>
+                </div>
+              </div>
+              <div class="status-chip">
+                <span class="status-dot"></span>
+                <span>WebUSB</span>
+              </div>
+            </div>
+
+            <div class="hero">
+              <p class="hero-copy">
+                Use this page to flash a new Aether device, recover an existing unit, or
+                install the latest firmware over USB. For routine updates, use the device's
+                local web UI when it is already on your network.
+              </p>
+              <div class="chip-row">
+                <div class="chip">1. Connect Aether over USB</div>
+                <div class="chip">2. Choose a flashing path</div>
+                <div class="chip">3. Keep this page open until complete</div>
+              </div>
+            </div>
+
+            <div class="actions">
+              <div class="action-card action-card--standard">
+                <div class="action-header">
+                  <div>
+                    <div class="action-title">Factory flash (recommended)</div>
+                    <div class="action-desc">
+                      Installs the latest Aether firmware, bootloader, and partition layout.
+                      Use this for fresh boards or when recovering a device.
+                    </div>
+                  </div>
+                  <div class="badge badge--primary">New / Recovery</div>
+                </div>
+
+                <div class="action-meta">
+                  <span>Best for: <strong>first-time setup and full recovery</strong></span>
+                  <span>Includes: <strong>complete device image</strong></span>
+                </div>
+
+                <div class="file-row">
+                  <esp-web-install-button manifest="manifest.json">
+                    Install Aether firmware
+                  </esp-web-install-button>
+                </div>
+              </div>
+
+              <div class="action-card action-card--feature">
+                <div class="action-header">
+                  <div>
+                    <div class="action-title">Update firmware (OTA)</div>
+                    <div class="action-desc">
+                      Installs the latest Aether firmware while keeping your Wi-Fi and device settings.
+                      Use this if your Aether is already set up and you just want the newest version.
+                    </div>
+                  </div>
+                  <div class="badge badge--warn">Update</div>
+                </div>
+
+                <div class="action-meta">
+                  <span>Best for: <strong>devices already configured on Wi-Fi</strong></span>
+                  <span>Preserves: <strong>existing network and device settings</strong></span>
+                </div>
+
+                <div class="file-row">
+                  <esp-web-install-button manifest="ota-manifest.json">
+                    Install latest Aether firmware
+                  </esp-web-install-button>
+                </div>
+              </div>
+            </div>
+
+            <div class="notes">
+              Works best in Chrome or Edge with WebUSB enabled. Do not unplug the device during flashing.
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <!-- ESP Web Tools -->
+    <script
+      type="module"
+      src="https://unpkg.com/esp-web-tools@9/dist/web/install-button.js?module"
+    ></script>
+  </body>
+</html>

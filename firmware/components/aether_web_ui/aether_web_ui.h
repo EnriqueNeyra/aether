@@ -3,7 +3,7 @@
 #include "esphome/core/component.h"
 #include "esphome/core/log.h"
 #include "esphome/core/defines.h"
-#include "esphome/components/switch/switch.h"
+#include "esphome/components/select/select.h"
 #include "esphome/components/web_server_base/web_server_base.h"
 #include "esphome/components/sensor/sensor.h"
 #include "esphome/components/update/update_entity.h"
@@ -16,7 +16,7 @@ namespace aether
 {
 
   using esphome::sensor::Sensor;
-  using esphome::switch_::Switch;
+  using esphome::select::Select;
   using esphome::update::UpdateEntity;
 
   static const char *const TAG = "aether_web_ui";
@@ -40,7 +40,7 @@ namespace aether
     void set_nox(Sensor *s) { nox_ = s; }
 
     void set_fw_update(UpdateEntity *u) { fw_update_ = u; }
-    void set_temp_unit_switch(Switch *s) { temp_unit_switch_ = s; }
+    void set_temp_unit_switch(Select *s) { temp_unit_select_ = s; }
 
     void setup() override
     {
@@ -115,25 +115,46 @@ namespace aether
     Sensor *nox_{nullptr};
 
     UpdateEntity *fw_update_{nullptr};
-    Switch *temp_unit_switch_{nullptr};
+    Select *temp_unit_select_{nullptr};
 
     static bool has_value_(Sensor *s)
     {
-      return s != nullptr && !std::isnan(s->state);
+      return s != nullptr && std::isfinite(s->state);
     }
 
     // Append a sensor value as a JSON number or null.
+    // Returns the number of characters actually written (clamped to remaining).
     static int append_sensor_(char *buf, int remaining, const char *key, Sensor *s, const char *fmt)
     {
       if (remaining <= 0)
         return 0;
+      int n;
       if (has_value_(s))
       {
         char tmp[32];
         snprintf(tmp, sizeof(tmp), fmt, s->state);
-        return snprintf(buf, remaining, "\"%s\":%s", key, tmp);
+        n = snprintf(buf, remaining, "\"%s\":%s", key, tmp);
       }
-      return snprintf(buf, remaining, "\"%s\":null", key);
+      else
+      {
+        n = snprintf(buf, remaining, "\"%s\":null", key);
+      }
+      return n < remaining ? n : remaining - 1;
+    }
+
+    // Escape a string for safe JSON insertion (handles " and \).
+    static void json_escape_(char *dst, size_t dst_size, const char *src)
+    {
+      size_t di = 0;
+      for (const char *s = src; *s && di + 1 < dst_size; ++s)
+      {
+        if ((*s == '"' || *s == '\\') && di + 2 < dst_size)
+        {
+          dst[di++] = '\\';
+        }
+        dst[di++] = *s;
+      }
+      dst[di] = '\0';
     }
 
     void handle_root_(AsyncWebServerRequest *request)
@@ -151,7 +172,7 @@ namespace aether
           "unknown";
 #endif
 
-      const bool use_f = temp_unit_switch_ != nullptr ? !temp_unit_switch_->state : true;
+      const bool use_f = temp_unit_select_ == nullptr || temp_unit_select_->current_option() != "Celsius";
 
       bool has_update = false;
       const char *latest_version = "";
@@ -174,11 +195,19 @@ namespace aether
       }
 
       // Build JSON incrementally so each sensor emits null when unavailable.
+      // After each snprintf, clamp the advance to avoid underflowing rem.
       char *p = json;
       int rem = sizeof(json);
       int n;
 
-      n = snprintf(p, rem, "{"); p += n; rem -= n;
+      auto advance = [&](int written) {
+        int clamped = (written < rem) ? written : rem - 1;
+        if (clamped < 0) clamped = 0;
+        p += clamped;
+        rem -= clamped;
+      };
+
+      n = snprintf(p, rem, "{"); advance(n);
 
       struct { const char *key; Sensor *s; const char *fmt; } sensors[] = {
         {"co2",  co2_,  "%.1f"}, {"temp", temp_, "%.2f"}, {"rh",   rh_,   "%.2f"},
@@ -188,24 +217,27 @@ namespace aether
       for (size_t i = 0; i < sizeof(sensors) / sizeof(sensors[0]); i++)
       {
         n = append_sensor_(p, rem, sensors[i].key, sensors[i].s, sensors[i].fmt);
-        p += n; rem -= n;
-        n = snprintf(p, rem, ","); p += n; rem -= n;
+        advance(n);
+        n = snprintf(p, rem, ","); advance(n);
       }
+
+      char escaped_version[64];
+      json_escape_(escaped_version, sizeof(escaped_version), latest_version);
 
       n = snprintf(p, rem,
                "\"fw_version\":\"%.48s\","
                "\"temp_unit\":\"%s\","
                "\"has_update\":%s,"
-               "\"latest_version\":\"%.48s\","
+               "\"latest_version\":\"%s\","
                "\"update_state\":\"%s\","
                "\"update_progress\":%.2f}",
                ver,
                use_f ? "F" : "C",
                has_update ? "true" : "false",
-               latest_version,
+               escaped_version,
                update_state_str,
                update_progress);
-      p += n; rem -= n;
+      advance(n);
 
       if (rem <= 0)
       {
@@ -248,9 +280,9 @@ namespace aether
                       "{\"ok\":false,\"error\":\"method_not_allowed\"}");
         return;
       }
-      if (temp_unit_switch_ == nullptr)
+      if (temp_unit_select_ == nullptr)
       {
-        ESP_LOGW(TAG, "Temperature unit change requested but switch is not wired");
+        ESP_LOGW(TAG, "Temperature unit change requested but select is not wired");
         request->send(500, "application/json",
                       "{\"ok\":false,\"error\":\"temp_unit_not_configured\"}");
         return;
@@ -266,13 +298,13 @@ namespace aether
       const std::string unit = request->getParam("unit")->value();
       if (unit == "C")
       {
-        temp_unit_switch_->turn_on();
+        temp_unit_select_->make_call().set_option("Celsius").perform();
         request->send(200, "application/json",
                       "{\"ok\":true,\"temp_unit\":\"C\"}");
       }
       else if (unit == "F")
       {
-        temp_unit_switch_->turn_off();
+        temp_unit_select_->make_call().set_option("Fahrenheit").perform();
         request->send(200, "application/json",
                       "{\"ok\":true,\"temp_unit\":\"F\"}");
       }

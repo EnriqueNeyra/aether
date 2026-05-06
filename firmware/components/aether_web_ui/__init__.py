@@ -2,7 +2,7 @@ import os
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.const import CONF_ID
-from esphome.components import sensor, web_server_base, update, switch
+from esphome.components import sensor, web_server_base, update, select
 
 # Make sure web_server_base and update core are loaded
 AUTO_LOAD = ["web_server_base", "update"]
@@ -59,7 +59,7 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Required(CONF_PM10): cv.use_id(sensor.Sensor),
         cv.Required(CONF_VOC): cv.use_id(sensor.Sensor),
         cv.Required(CONF_NOX): cv.use_id(sensor.Sensor),
-        cv.Required(CONF_TEMP_UNIT_SWITCH): cv.use_id(switch.Switch),
+        cv.Required(CONF_TEMP_UNIT_SWITCH): cv.use_id(select.Select),
 
         # Optional link to the update entity created by:
         # update:
@@ -89,7 +89,7 @@ async def to_code(config):
         s = await cg.get_variable(config[key])
         cg.add(getattr(var, f"set_{key}")(s))
 
-    # Wire up the temp unit switch
+    # Wire up the temp unit select
     sw = await cg.get_variable(config[CONF_TEMP_UNIT_SWITCH])
     cg.add(var.set_temp_unit_switch(sw))
 

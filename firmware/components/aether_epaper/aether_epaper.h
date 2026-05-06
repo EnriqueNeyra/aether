@@ -40,7 +40,7 @@ namespace aether
 
     // GDEY037T03 (416x240)
     static GxEPD2_BW<GxEPD2_370_GDEY037T03, GxEPD2_370_GDEY037T03::HEIGHT>
-        display(GxEPD2_370_GDEY037T03(EPD_CS, EPD_DC, EPD_RST, -1));
+        display(GxEPD2_370_GDEY037T03(EPD_CS, EPD_DC, EPD_RST, EPD_BUSY));
 
     // --- State ---
     enum DisplayMode
@@ -59,6 +59,7 @@ namespace aether
     static int8_t g_last_info_wifi_state = -1;
     static unsigned long g_last_normal_render_ms = 0;
     static unsigned long g_last_boot_frame_ms = 0;
+    static unsigned long g_boot_start_ms = 0;
 
     // --- Cached Layout Data ---
     struct BootWordmarkLayout
@@ -76,6 +77,7 @@ namespace aether
     static constexpr unsigned long NORMAL_REFRESH_MS = 5000;
     static constexpr unsigned long BOOT_FRAME_MS = 500;
     static constexpr uint8_t BOOT_SLASH_FRAME_COUNT = 4;
+    static constexpr unsigned long BOOT_TIMEOUT_MS = 75000;
     static constexpr const char *INFO_INSTRUCTIONS_URL = "https://github.com/EnriqueNeyra/aether";
 
     inline void draw_info_qr_card(int x, int y, const char *target);
@@ -288,8 +290,8 @@ namespace aether
       display.setTextColor(GxEPD_BLACK);
 
       aether_epaper_layout::print_centered(display, display.width() / 2, 36,
-                                            &Satoshi_800_Device_Information_Subset18pt7b,
-                                            "Device Information");
+                                           &Satoshi_800_Device_Information_Subset18pt7b,
+                                           "Device Information");
       aether_epaper_layout::draw_divider(display, 154, 261, 47);
     }
 
@@ -404,7 +406,7 @@ namespace aether
     {
       const bool connected = wifi_connected();
       render_paged(full, [connected]()
-                    {
+                   {
          if (connected) render_info_connected();
          else render_info_disconnected(); });
       g_last_info_wifi_state = connected ? 1 : 0;
@@ -491,7 +493,10 @@ namespace aether
       unsigned long now = millis();
       if (g_display_mode == MODE_BOOT)
       {
-        if (all_metrics_ready())
+        if (g_boot_start_ms == 0)
+          g_boot_start_ms = now;
+
+        if (all_metrics_ready() || (now - g_boot_start_ms >= BOOT_TIMEOUT_MS))
         {
           g_display_mode = MODE_NORMAL;
           render_normal(true);
