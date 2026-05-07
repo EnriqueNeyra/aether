@@ -1,274 +1,222 @@
 ## Project Summary
 
-Aether is an ESPHome firmware project for an ESP32-C3 air quality monitor with a 3.7" e-paper display and a local web dashboard. The device reads air quality metrics from a Sensirion SEN66 sensor and presents them on both the e-paper screen and a browser-based UI served from the device itself.
+Aether is a full air-quality monitor project built around an ESP32-C3, a Sensirion SEN66, a 3.7" GDEY037T03 e-paper display, a local browser UI, a WebUSB flashing page, and the supporting PCB/enclosure design files. Most agent work should focus on `firmware/` and `flash/`; `hardware/` and `enclosure/` are reference/design assets and should usually only receive small, targeted documentation or file-organization updates.
 
 ## Repository Layout
 
-```
+```text
+AGENTS.md                                  # This repo-wide guide for coding agents
+README.md                                  # User-facing project overview
+enclosure/                                 # SolidWorks enclosure + assembly files
 firmware/
-├── aether.yaml                          # Core ESPHome config (pins, sensors, components, intervals)
-├── .gitignore                           # Ignores .esphome/ and secrets.yaml
+├── aether.yaml                            # Main ESPHome config
 ├── components/
 │   ├── aether_epaper/
-│   │   ├── aether_epaper.h             # E-paper driver, display modes, button handlers
-│   │   ├── aether_epaper_layout.h      # Shared layout rendering (sketch layout, drawing primitives)
-│   │   └── fonts/                       # GFX font headers (.h) and source TTFs
+│   │   ├── aether_epaper.h                # Display driver, render loop, mode state
+│   │   ├── aether_epaper_layout.h         # Shared layout + drawing primitives
+│   │   └── fonts/                         # Adafruit GFX font headers + TTF sources
 │   └── aether_web_ui/
-│       ├── __init__.py                  # ESPHome codegen (CONFIG_SCHEMA + to_code)
-│       ├── aether_web_ui.h              # Web UI component (AetherWebUI class, API handlers)
-│       ├── aether_web_ui_html.h         # Auto-generated: inlined HTML/CSS/JS (do not hand-edit)
-│       └── web/
-│           ├── index.html               # Web UI HTML source
-│           ├── style.css                # Web UI CSS source
-│           └── app.js                   # Web UI JavaScript source
-ota-manifest.json                        # OTA update manifest (version + binary URL)
+│       ├── __init__.py                    # ESPHome codegen + HTML inlining
+│       ├── aether_web_ui.h                # AsyncWebHandler + JSON/API endpoints
+│       ├── aether_web_ui_html.h           # Auto-generated; do not edit directly
+│       └── web/                           # Source HTML/CSS/JS for the device UI
+flash/
+├── index.html                             # WebUSB / ESP Web Tools flashing page
+├── manifest.json                          # Factory flashing manifest
+└── ota-manifest.json                      # OTA manifest consumed by firmware updates
+hardware/
+├── pcb/                                   # KiCad project
+├── manufacturing/                         # PCB zip, BOM, centroid exports
+└── datasheets/                            # Reference component datasheets
 ```
 
-## Hardware & Pin Map
+## Agent Priorities
+
+- Prioritize `firmware/` and `flash/`.
+- Keep `hardware/` and `enclosure/` changes brief and surgical unless the user explicitly asks for CAD/PCB work.
+- Do not hand-edit `firmware/components/aether_web_ui/aether_web_ui_html.h`; edit `web/index.html`, `web/style.css`, and `web/app.js` instead.
+
+## Firmware Overview
+
+### Core Hardware
 
 - **MCU:** ESP32-C3 (`esp32-c3-devkitm-1`), Arduino framework
-- **Sensor:** Sensirion SEN66 via I2C (SDA=10, SCL=0, address 0x6B)
-- **Display:** GDEY037T03 3.7" e-paper (416×240, black/white) via SPI
-  - SPI pins: MOSI=7, SCK=6, CS=5, DC=4, RST=3, BUSY=1
-- **Boot button:** GPIO 9 (INPUT_PULLUP, active low) — short press toggles info screen, long press triggers factory reset flow
-- **Libraries** (PlatformIO): GxEPD2 ≥1.6.4, Adafruit GFX ≥1.12.3, Adafruit BusIO ≥1.15.0, QRCode ≥0.0.1
+- **Sensor:** Sensirion SEN66 via I2C on SDA=10, SCL=0, address `0x6B`
+- **Display:** GDEY037T03 416x240 black/white e-paper via SPI
+  - MOSI=7, SCK=6, CS=5, DC=4, RST=3, BUSY=1
+- **Boot button:** GPIO 9, `INPUT_PULLUP`, active low
 
-## Architecture & Data Flow
+### Main Firmware Entry Point
 
-### Sensor → State
+`firmware/aether.yaml` wires together:
 
-The SEN66 sensor is declared in `aether.yaml` with a 10-second update interval. It produces nine metric IDs:
+- SEN66 sensor entities
+- the custom `aether_web_ui` external component
+- the e-paper render loop
+- Wi-Fi / captive portal / improv setup
+- ESPHome OTA + HTTP OTA update support
+- the persisted temperature unit preference
 
-| Sensor ID   | Metric      | Unit    |
-| ----------- | ----------- | ------- |
-| `co2`       | CO₂         | ppm     |
-| `temp`      | Temperature | °C      |
-| `rh`        | Humidity    | %RH     |
-| `pm1_0`     | PM1.0       | µg/m³   |
-| `pm2_5`     | PM2.5       | µg/m³   |
-| `pm4_0`     | PM4.0       | µg/m³   |
-| `pm10_0`    | PM10        | µg/m³   |
-| `voc_index` | VOC Index   | (index) |
-| `nox_index` | NOx Index   | (index) |
+### Sensor Update and Render Flow
+
+- The SEN66 platform updates every **5 seconds**.
+- A YAML `interval` calls `aether::aether_epaper::tick_and_draw(...)` every **500ms**.
+- Display and web UI both consume the same nine sensor values:
+
+| YAML sensor ID | Metric | Web UI key |
+| --- | --- | --- |
+| `co2` | CO2 | `co2` |
+| `temp` | Temperature | `temp` |
+| `rh` | Humidity | `rh` |
+| `pm1_0` | PM1.0 | `pm1` |
+| `pm2_5` | PM2.5 | `pm25` |
+| `pm4_0` | PM4.0 | `pm4` |
+| `pm10_0` | PM10 | `pm10` |
+| `voc_index` | VOC Index | `voc` |
+| `nox_index` | NOx Index | `nox` |
+
+When adding or renaming a metric, keep YAML IDs, `aether_web_ui` config keys, Python codegen, C++ setters/fields, display cache state, and web JS rendering aligned.
 
 ### Display Path
 
-A YAML `interval` block calls `aether::aether_epaper::tick_and_draw(...)` every **500ms**, passing all nine sensor values plus the temperature unit flag (`!id(temp_unit_c_switch).state` — true = Fahrenheit).
+`firmware/components/aether_epaper/aether_epaper.h` owns display state and rendering. It has four modes:
 
-`aether_epaper.h` manages four display modes:
+- `MODE_BOOT` - boot wordmark animation
+- `MODE_NORMAL` - main dashboard
+- `MODE_INFO` - device information / QR screen
+- `MODE_RESET` - factory reset confirmation
 
-- **MODE_BOOT** — animated "Syntropy // Labs" wordmark with slash animation; transitions to normal when all metrics are valid.
-- **MODE_NORMAL** — main air quality dashboard rendered by `aether_epaper_layout::render_sketch_layout()`.
-- **MODE_INFO** — device information screen with QR codes. Shows hostname/IP/dashboard link when WiFi is connected; shows setup AP name and reboot instructions when disconnected.
-- **MODE_RESET** — factory reset confirmation screen.
-
-### Web UI Path
-
-`aether_web_ui` is a custom ESPHome component that registers an `AsyncWebHandler` on port 80. It serves:
-
-- `GET /` — the full dashboard UI (single-page app inlined from `web/` sources)
-- `GET /api/state` — JSON payload with all metrics, firmware version, temp unit, and OTA status
-- `POST /api/perform_update` — triggers OTA firmware update
-- `POST /api/temp_unit?unit=C|F` — toggles temperature display unit
-
-The web dashboard has two tabs: **Environment** (live sensor grid, polls `/api/state` every 5s) and **Firmware & Updates** (version info, one-click OTA).
-
-### Web UI Build Pipeline
-
-`__init__.py` runs `_generate_html_header()` at codegen time. This reads `web/index.html`, `web/style.css`, and `web/app.js`, inlines CSS/JS into the HTML, and writes the result to `aether_web_ui_html.h` as a C++ raw string literal (`INDEX_HTML`). **Do not hand-edit `aether_web_ui_html.h`** — edit the source files in `web/` instead.
+The shared layout math lives in `aether_epaper_layout.h`.
 
 ### Temperature Unit Preference
 
-Temperature unit is managed via an ESPHome template switch (`temp_unit_c_switch`) with `restore_mode: RESTORE_DEFAULT_OFF`:
+Temperature unit is currently a persisted **ESPHome template select**, not a switch:
 
-- Switch ON = Celsius, Switch OFF = Fahrenheit (default)
-- The switch state persists across reboots via ESPHome's built-in restore mechanism
-- The display reads the switch state via the interval lambda: `!id(temp_unit_c_switch).state`
-- The web API reads it in `handle_state_()` and toggles it via `handle_temp_unit_()`
-- Temperatures are always stored/cached in Celsius internally; Fahrenheit conversion happens only at render time
+- Entity ID: `temp_unit_select`
+- Options: `"Fahrenheit"` and `"Celsius"`
+- Default initial option: Fahrenheit
+- `restore_value: true`
 
-### OTA Update Path
+Internally, temperatures stay in Celsius. The display converts at render time, and the web UI toggles units through `POST /api/temp_unit?unit=C|F`.
 
-- **ESPHome native OTA** (`ota: platform: esphome`) for local development
-- **HTTP OTA** (`update: platform: http_request`) checks `ota-manifest.json` every 24h
-  - Manifest URL: `https://enriqueneyra.github.io/aether/ota-manifest.json`
-  - Binary URL: `https://github.com/enriqueneyra/aether/releases/latest/download/aether.bin`
-- Web UI triggers updates via `POST /api/perform_update` → `fw_update_->perform(false)`
+### Web UI Path
 
-### Network & Boot Behavior
+`aether_web_ui` registers an `AsyncWebHandler` on the ESPHome web server and serves:
 
-- WiFi AP activates on boot with a 1-minute timeout for captive portal setup
-- `on_boot` (priority -100): after 10 minutes, if WiFi is still not connected, AP is disabled and WiFi is fully turned off to enter **Offline Mode**
-- `api.reboot_timeout: 0s` and `wifi.reboot_timeout: 0s` prevent unwanted reboots when disconnected
-- `captive_portal`, `improv_serial`, and `esp32_improv` are enabled for initial device setup
-- mDNS advertises `_http._tcp` on port 80
+- `GET /` or `/index.html` - the inlined device dashboard
+- `GET /api/state` - JSON state for metrics, firmware version, temp unit, and update status
+- `POST /api/perform_update` - starts the HTTP update flow
+- `POST /api/temp_unit?unit=C|F` - changes the temperature unit select
 
-### Button Interactions
+The browser app in `firmware/components/aether_web_ui/web/` polls `/api/state` every **5 seconds**.
 
-The boot button (GPIO 9) supports two gestures via `on_multi_click`:
+### Web UI Build Pipeline
 
-- **Short press** (50ms–1s): calls `aether_epaper::on_short_press()` — toggles between MODE_NORMAL and MODE_INFO
-- **Long press** (≥3s): calls `aether_epaper::on_long_press()`:
-  - From MODE_NORMAL → enters MODE_RESET (shows confirmation screen)
-  - From MODE_RESET → returns `true`, triggering `aether_factory_reset` button press
-  - From MODE_INFO (disconnected) → triggers `safe_reboot()`
-  - From MODE_BOOT → ignored
+`firmware/components/aether_web_ui/__init__.py` runs `_generate_html_header()` at import/codegen time:
 
-## Sensor ID Wiring Map
+1. Reads `web/index.html`, `web/style.css`, and `web/app.js`
+2. Inlines CSS and JS into the HTML
+3. Writes `aether_web_ui_html.h` as a raw string literal
 
-Sensor IDs must match exactly across these four touchpoints:
+Always edit the `web/` source files, never the generated header.
 
-| YAML sensor ID | `aether_web_ui:` key | `__init__.py` conf key | C++ setter   | Display lambda arg    |
-| -------------- | -------------------- | ---------------------- | ------------ | --------------------- |
-| `co2`          | `co2`                | `CONF_CO2`             | `set_co2()`  | `id(co2).state`       |
-| `pm2_5`        | `pm25`               | `CONF_PM25`            | `set_pm25()` | `id(pm2_5).state`     |
-| `temp`         | `temp`               | `CONF_TEMP`            | `set_temp()` | `id(temp).state`      |
-| `rh`           | `rh`                 | `CONF_RH`              | `set_rh()`   | `id(rh).state`        |
-| `pm1_0`        | `pm1`                | `CONF_PM1`             | `set_pm1()`  | `id(pm1_0).state`     |
-| `pm4_0`        | `pm4`                | `CONF_PM4`             | `set_pm4()`  | `id(pm4_0).state`     |
-| `pm10_0`       | `pm10`               | `CONF_PM10`            | `set_pm10()` | `id(pm10_0).state`    |
-| `voc_index`    | `voc`                | `CONF_VOC`             | `set_voc()`  | `id(voc_index).state` |
-| `nox_index`    | `nox`                | `CONF_NOX`             | `set_nox()`  | `id(nox_index).state` |
+### OTA / Update Path
 
-Additional non-sensor wirings:
+The firmware exposes two update mechanisms:
 
-- `aether_fw_update` → `fw_update` → `CONF_FW_UPDATE` → `set_fw_update()`
-- `temp_unit_c_switch` → `temp_unit_switch` → `CONF_TEMP_UNIT_SWITCH` → `set_temp_unit_switch()`
+- `ota: platform: esphome` for normal ESPHome development flashing
+- `update: platform: http_request` for release OTA checks and installation
 
-## Web API JSON Schema (`/api/state`)
+Current OTA source in firmware:
 
-```json
-{
-  "co2": 450.0,
-  "temp": 22.5,
-  "rh": 45.0,
-  "pm1": 3.0,
-  "pm25": 5.5,
-  "pm4": 6.0,
-  "pm10": 8.0,
-  "voc": 120.0,
-  "nox": 15.0,
-  "fw_version": "1.0.0",
-  "temp_unit": "F",
-  "has_update": false,
-  "latest_version": "1.0.0",
-  "update_state": "no_update",
-  "update_progress": 0.0
-}
-```
+- Manifest URL: `https://enriqueneyra.github.io/aether/flash/ota-manifest.json`
+- Release binary URL inside the manifest: GitHub Releases `aether.bin`
 
-`update_state` values: `"no_update"`, `"available"`, `"installing"`, `"unknown"`
+The web UI triggers installation through `fw_update_->perform(false)`.
 
-## Font System
+### Network and Boot Behavior
 
-Fonts are pre-converted Adafruit GFX font headers in `firmware/components/aether_epaper/fonts/`. Each `.h` file is declared in `esphome.includes` in `aether.yaml` and referenced via `extern const GFXfont` in `aether_epaper_layout.h`.
+- The device starts with a temporary AP for captive-portal onboarding.
+- After 10 minutes, if Wi-Fi is still unconfigured, firmware disables Wi-Fi and enters offline mode.
+- `api.reboot_timeout: 0s` and `wifi.reboot_timeout: 0s` avoid reboot loops while disconnected.
+- `web_server` runs on port 80 with local access enabled.
 
-Active fonts used in code:
+### Button Behavior
 
-- `Inter_Bold9pt7b` — small labels, secondary text
-- `Inter_Bold12pt7b` — info screen text, meta rows
-- `Inter_Bold18pt7b` — CO₂ fallback, info footer ("S//L")
-- `Inter_Bold_Tabular18pt7b` — metric values (monospaced digits)
-- `Inter_Bold_Tabular24pt7b` — large CO₂ value (monospaced digits)
-- `Satoshi_800_Device_Information_Subset18pt7b` — "Device Information" title
-- `Satoshi_800_Factory_Reset_Subset22pt7b` — "Factory Reset" title
-- `Satoshi_800_Logo_Subset22pt7b` — boot wordmark ("Syntropy // Labs")
+The boot button supports two gestures via `on_multi_click`:
 
-When adding a new font: create the `.h` header with `#pragma once`, add it to `esphome.includes` in `aether.yaml`, and `#include` it in `aether_epaper.h`.
+- Short press (50ms-1s): toggle normal/info screen
+- Long press (>=3s): enter reset flow, confirm reset, or reboot from disconnected info mode depending on the current display mode
 
-## Display Layout Details (aether_epaper_layout.h)
+## Flash Folder
 
-The layout file is templated on `Display` type so it can be used both by the firmware (GxEPD2) and by other rendering contexts. Key structures and functions:
+`flash/` contains the browser-based flashing flow:
 
-- **`Metrics` struct** — holds all nine sensor values (temp always in °C)
-- **`render_sketch_layout()`** — main normal-mode layout: four corner PM sections, center CO₂ with ppm label, temp/humidity readings, VOC/NOx index sections, decorative corner braces and dividers
-- **`render_disconnected_info_layout()`** — disconnected info screen with QR code and setup instructions
-- **Alert thresholds** (caution diamond icon shown when exceeded): PM1 >15, PM2.5 >15, PM4 >30, PM10 >50, CO₂ >1000, VOC >250, NOx >100
-- **Drawing primitives**: `print_left/centered/right()`, `draw_stroked_line()`, `draw_stroked_quadratic()`, `draw_divider()`, `draw_corner_brace()`, `draw_caution_icon()`, `format_metric()`
+- `index.html` is the WebUSB / ESP Web Tools page used for factory flashing and recovery
+- `manifest.json` points to the factory image (`aether-factory.bin`)
+- `ota-manifest.json` points to the OTA image (`aether.bin`) and its MD5
 
-## Adding a New Sensor Metric
+If you change release artifact names or URLs, update both the firmware OTA source and the manifests in `flash/`.
 
-Update all touchpoints together:
+## Hardware and Enclosure
 
-1. `firmware/aether.yaml` — add sensor declaration under the `sen6x` platform with a unique `id` and `name`
-2. `firmware/aether.yaml` — add the ID mapping under `aether_web_ui:`
-3. `firmware/aether.yaml` — add `id(new_sensor).state` to the `interval` lambda's `tick_and_draw()` call
-4. `firmware/components/aether_web_ui/__init__.py` — add `CONF_*` constant, add to `CONFIG_SCHEMA`, add to the `to_code` wiring loop
-5. `firmware/components/aether_web_ui/aether_web_ui.h` — add `set_*()` setter, private `Sensor*` field, include in `handle_state_()` JSON output
-6. `firmware/components/aether_epaper/aether_epaper.h` — add cached `g_*` variable, update `tick_and_draw()` signature, update `all_metrics_ready()`
-7. `firmware/components/aether_epaper/aether_epaper_layout.h` — add field to `Metrics` struct, add rendering in `render_sketch_layout()`
-8. `firmware/components/aether_web_ui/web/app.js` — add to the `items` array in `renderMetrics()`
+Keep work here brief unless the user explicitly asks for PCB or CAD changes.
 
-## Adding a New Persisted Preference
+- `hardware/pcb/` contains the KiCad project (`Aether.kicad_pro`, `.sch`, `.kicad_pcb`)
+- `hardware/manufacturing/` contains generated fabrication outputs, BOM, and centroid files
+- `hardware/datasheets/` contains reference PDFs used during design
+- `enclosure/` contains SolidWorks part and assembly files for the enclosure and display stack
 
-1. `firmware/aether.yaml` — add a `switch: platform: template` with `restore_mode` set appropriately
-2. `firmware/aether.yaml` — add the switch ID to `aether_web_ui:` mapping if the web UI needs access
-3. `firmware/components/aether_web_ui/__init__.py` — add config key, schema entry, and `to_code` wiring
-4. `firmware/components/aether_web_ui/aether_web_ui.h` — add setter, field, API handler if needed
-5. Pass to display lambda if the display needs to read it
+Do not casually rename or reorganize CAD, KiCad, or manufacturing artifacts; these files are tooling-sensitive and often referenced outside the repo.
 
-## ESPHome External Components
+## Build and Validation
 
-```yaml
-external_components:
-  - source: { type: local, path: components }
-    components: [aether_web_ui]
-  - source: { type: git, url: https://github.com/esphome/esphome, ref: dev }
-    components: [sen6x, sensirion_common]
-```
+### Firmware
 
-- `aether_web_ui` is loaded from the local `components/` directory
-- `sen6x` and `sensirion_common` are pulled from ESPHome's dev branch (SEN66 support is not yet in stable)
-- Do not remove or restructure this wiring unless explicitly requested
-
-## Build & Validation
+From the repo root:
 
 ```bash
-# Validate YAML config (fast, no compilation)
 esphome config firmware/aether.yaml
-
-# Full firmware compilation
 esphome compile firmware/aether.yaml
 ```
 
-## C++ Conventions
+From inside `firmware/`:
 
-- All custom code lives under `namespace aether { ... }`
-- `aether_epaper` uses free functions in a nested namespace (not a class)
-- `aether_web_ui` uses the `AetherWebUI` class extending `esphome::Component` and `AsyncWebHandler`
-- `aether_epaper_layout` uses templated free functions for display-type independence
-- Avoid unnecessary dynamic allocation; keep code lightweight for embedded
-- Use `inline` for all functions in header-only components
-- Feed the watchdog (`esphome::App.feed_wdt()`) during long paged rendering loops
+```bash
+esphome config aether.yaml
+esphome compile aether.yaml
+```
 
-## Python Codegen Conventions (`__init__.py`)
+## Codebase Conventions
 
-- `AUTO_LOAD = ["web_server_base", "update"]` — keep these intact
-- `CONFIG_SCHEMA` and `to_code` must stay strictly aligned with the C++ `AetherWebUI` API
-- For each config field: schema validation entry + variable fetch in `to_code` + matching C++ setter call
-- `_generate_html_header()` runs at import time before codegen to inline web sources into `aether_web_ui_html.h`
+### C++ / Firmware
 
-## Web UI Conventions
+- Custom code lives under `namespace aether`.
+- `aether_epaper` is header-only and organized around free functions/state in a nested namespace.
+- `aether_web_ui` uses the `AetherWebUI` class extending `esphome::Component` and `AsyncWebHandler`.
+- `aether_epaper_layout.h` is templated for display-type-independent layout rendering.
+- Prefer lightweight/static patterns over heap-heavy abstractions.
+- Feed the watchdog during paged display rendering loops.
 
-- Source files live in `web/` (HTML, CSS, JS); they are inlined into `aether_web_ui_html.h` at compile time
-- Dark theme, responsive (mobile + desktop), lightweight single-page app
-- Polls `/api/state` every 5 seconds
-- Temperature unit toggle sends `POST /api/temp_unit?unit=C|F` and refreshes state
-- OTA update button sends `POST /api/perform_update`
-- Do not hand-edit `aether_web_ui_html.h`
+### Python Codegen
 
-## Primary Change Goals
+- Keep `CONFIG_SCHEMA`, `to_code()`, and the C++ API in sync.
+- `AUTO_LOAD = ["web_server_base", "update"]` is required and should remain intact.
+- The current temperature-unit dependency is `select.Select`, not `switch.Switch`.
 
-- Prefer small, safe, incremental edits
-- Preserve existing behavior unless the task explicitly asks for behavior changes
-- Keep IDs, schema keys, and YAML/C++/Python wiring stable and consistent
+### Web UI
 
-## Non-Goals
+- Device UI sources live in `firmware/components/aether_web_ui/web/`.
+- The UI is a small single-page app with two tabs: Environment and Firmware & Updates.
+- The frontend expects the `/api/state` schema to stay stable unless the user explicitly wants an API change.
 
-- No broad architecture rewrites unless explicitly requested
-- Do not rename stable entity IDs without clear migration reason
-- Do not alter OTA source URLs or update strategy unless explicitly requested
+## Safe Change Rules
+
+- Prefer small, wiring-consistent changes over broad rewrites.
+- Preserve stable IDs, config keys, API keys, and route names unless migration is part of the task.
+- When editing firmware features that span YAML, Python, C++, and browser JS, update every touchpoint together.
+- When changing OTA behavior, keep `firmware/` and `flash/` aligned.
 
 ## Maintenance Rule
 
-Keep this document accurate as the project evolves. When foundational architecture, dependencies, or wiring patterns change, update this file.
+Keep this file in sync with the actual repo. Update it when repository structure, firmware wiring, or OTA/flash workflows materially change.

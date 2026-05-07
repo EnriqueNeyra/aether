@@ -1,0 +1,73 @@
+name: Deploy Pages
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "flash/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Build Pages artifact
+        run: |
+          mkdir -p site/flash
+          cp flash/index.html site/flash/
+          cp flash/manifest.json site/flash/
+          cp flash/ota-manifest.json site/flash/
+
+          cat <<'EOF' > site/index.html
+          <!doctype html>
+          <html lang="en">
+            <head>
+              <meta charset="utf-8" />
+              <title>Aether</title>
+              <meta http-equiv="refresh" content="0; url=/flash/" />
+              <link rel="canonical" href="https://aether.syntropylabs.io/flash/" />
+              <script>
+                window.location.replace("/flash/");
+              </script>
+            </head>
+            <body>
+              <p>Redirecting to <a href="/flash/">/flash/</a>...</p>
+            </body>
+          </html>
+          EOF
+
+          echo "aether.syntropylabs.io" > site/CNAME
+          touch site/.nojekyll
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy Pages site
+        id: deployment
+        uses: actions/deploy-pages@v4

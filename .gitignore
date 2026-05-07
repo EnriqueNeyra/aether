@@ -1,7 +1,10 @@
 # IDE Files
 .vscode
 .gemini
-.github
+.github/*
+!.github/workflows/
+.github/workflows/*
+!.github/workflows/pages.yml
 
 # Firmware Files
 .pio
