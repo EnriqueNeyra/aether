@@ -1,5 +1,5 @@
 substitutions:
-  fw_version: "1.0.2"
+  fw_version: "1.0.3"
 
 esphome:
   name: aether
