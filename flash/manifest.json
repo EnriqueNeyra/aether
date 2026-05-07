@@ -1,5 +1,5 @@
 {
-  "name": "Aeroq Air Quality Monitor",
+  "name": "syntropylabs.aether",
   "version": "1.0.2",
   "builds": [
     {

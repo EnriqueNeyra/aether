@@ -5,7 +5,7 @@
     {
       "chipFamily": "ESP32-C3",
       "ota": {
-        "path": "https://github.com/enriqueneyra/aether/releases/latest/download/aether.bin",
+        "path": "https://github.com/enriqueneyra/aether/releases/latest/download/aether-ota.bin",
         "md5": "29ff8906078c5300a75a6082c664d83f"
       }
     }

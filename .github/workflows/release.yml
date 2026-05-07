@@ -1,0 +1,124 @@
+name: Release Firmware
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.actor != 'github-actions[bot]' && (github.event_name != 'push' || !contains(github.event.head_commit.message, '[skip release]'))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install ESPHome
+        run: python -m pip install --upgrade pip esphome==2026.2.4
+
+      - name: Bump patch version
+        id: version
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import re
+          from pathlib import Path
+
+          yaml_path = Path("firmware/aether.yaml")
+          text = yaml_path.read_text()
+          match = re.search(r'(^\s*fw_version:\s*")(\d+)\.(\d+)\.(\d+)(")', text, re.MULTILINE)
+          if match is None:
+              raise SystemExit("Could not find fw_version in firmware/aether.yaml")
+
+          major, minor, patch = map(int, match.groups()[1:4])
+          new_version = f"{major}.{minor}.{patch + 1}"
+          updated_text = re.sub(
+              r'(^\s*fw_version:\s*")\d+\.\d+\.\d+(")',
+              rf'\g<1>{new_version}\2',
+              text,
+              count=1,
+              flags=re.MULTILINE,
+          )
+          yaml_path.write_text(updated_text)
+
+          for manifest_name in ("flash/manifest.json", "flash/ota-manifest.json"):
+              manifest_path = Path(manifest_name)
+              manifest = json.loads(manifest_path.read_text())
+              manifest["version"] = new_version
+              manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
+
+          with Path(os.environ["GITHUB_OUTPUT"]).open("a") as fh:
+              fh.write(f"version={new_version}\n")
+              fh.write(f"tag=v{new_version}\n")
+          PY
+
+      - name: Compile firmware
+        run: |
+          cd firmware
+          esphome compile aether.yaml
+
+      - name: Collect binaries and update OTA manifest
+        run: |
+          set -euo pipefail
+
+          FACTORY_BIN="$(find firmware -path '*/.pioenvs/aether/firmware.factory.bin' | head -n 1)"
+          OTA_BIN="$(find firmware -path '*/.pioenvs/aether/firmware.ota.bin' | head -n 1)"
+
+          test -n "${FACTORY_BIN}"
+          test -n "${OTA_BIN}"
+
+          mkdir -p release
+          cp "${FACTORY_BIN}" release/aether-factory.bin
+          cp "${OTA_BIN}" release/aether-ota.bin
+
+          python - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+
+          ota_path = Path("release/aether-ota.bin")
+          manifest_path = Path("flash/ota-manifest.json")
+
+          manifest = json.loads(manifest_path.read_text())
+          manifest["builds"][0]["ota"]["md5"] = hashlib.md5(ota_path.read_bytes()).hexdigest()
+          manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
+          PY
+
+      - name: Commit release metadata
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add firmware/aether.yaml flash/manifest.json flash/ota-manifest.json
+          git commit -m "Release ${{ steps.version.outputs.tag }} [skip release]"
+          git push
+
+      - name: Create tag
+        run: |
+          git tag -a "${{ steps.version.outputs.tag }}" -m "Release ${{ steps.version.outputs.tag }}"
+          git push origin "${{ steps.version.outputs.tag }}"
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.version.outputs.tag }}" \
+            release/aether-factory.bin \
+            release/aether-ota.bin \
+            --title "${{ steps.version.outputs.tag }}" \
+            --notes "Automated firmware release for Aether ${{ steps.version.outputs.version }}."

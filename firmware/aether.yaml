@@ -87,7 +87,7 @@ update:
   - platform: http_request
     id: aether_fw_update
     name: "Aether Firmware"
-    source: "https://enriqueneyra.github.io/aether/flash/ota-manifest.json"
+    source: "https://aether.syntropylabs.io/flash/ota-manifest.json"
     update_interval: 24h
 
 wifi:

@@ -129,8 +129,8 @@ The firmware exposes two update mechanisms:
 
 Current OTA source in firmware:
 
-- Manifest URL: `https://enriqueneyra.github.io/aether/flash/ota-manifest.json`
-- Release binary URL inside the manifest: GitHub Releases `aether.bin`
+- Manifest URL: `https://aether.syntropylabs.io/flash/ota-manifest.json`
+- Release binary URL inside the manifest: GitHub Releases `aether-ota.bin`
 
 The web UI triggers installation through `fw_update_->perform(false)`.
 
@@ -154,7 +154,7 @@ The boot button supports two gestures via `on_multi_click`:
 
 - `index.html` is the WebUSB / ESP Web Tools page used for factory flashing and recovery
 - `manifest.json` points to the factory image (`aether-factory.bin`)
-- `ota-manifest.json` points to the OTA image (`aether.bin`) and its MD5
+- `ota-manifest.json` points to the OTA image (`aether-ota.bin`) and its MD5
 
 If you change release artifact names or URLs, update both the firmware OTA source and the manifests in `flash/`.
 
