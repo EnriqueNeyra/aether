@@ -522,7 +522,11 @@ namespace aether
 
       if (g_display_mode == MODE_NORMAL && (g_last_normal_render_ms == 0 || now - g_last_normal_render_ms >= NORMAL_REFRESH_MS))
       {
-        render_normal(false);
+        // Prevent e-paper ghosting by running a full refresh every ~24 hours (17280 * 5s)
+        static unsigned int normal_refresh_count = 1;
+        bool full_refresh = (normal_refresh_count % 17280 == 0);
+        render_normal(full_refresh);
+        normal_refresh_count++;
         return;
       }
 
