@@ -1,6 +1,6 @@
 # Aether
 
-Aether is an air quality monitor by **Syntropy Labs** built around an ESP32-C3, a Sensirion SEN66 sensor, and a 3.7" e-paper display. It measures **CO2, temperature, humidity, PM1.0, PM2.5, PM4.0, PM10, VOC index, and NOx index**, and exposes those readings on-device, on the local network, and through Home Assistant.
+Aether is a comprehensive air quality monitor by [**Syntropy Labs**](https://syntropylabs.io/products/aether-air-quality-monitor) built around an ESP32-C3, a Sensirion SEN66 sensor, and a 3.7" e-paper display. It measures **CO2, Temperature, Humidity, PM1.0, PM2.5, PM4.0, PM10, VOC index, and NOx index**, and exposes those readings on-device, on the local network, and through Home Assistant.
 
 This repository contains the full project source:
 
@@ -13,6 +13,25 @@ This repository contains the full project source:
 | `enclosure/`              | SolidWorks enclosure and assembly files                                    |
 | `flash/`                  | WebUSB flashing page and firmware manifests                                |
 
+## Contents
+
+- [Features](#features)
+- [Hardware](#hardware)
+- [Assembly](#assembly)
+- [Setup](#setup)
+  - [Flashing firmware onto a device](#flashing-firmware-onto-a-device)
+  - [First-time network setup](#first-time-network-setup)
+  - [Firmware development](#firmware-development)
+- [Using Aether](#using-aether)
+  - [Normal operation](#normal-operation)
+  - [Wi-Fi behavior](#wi-fi-behavior)
+  - [Side button behavior](#side-button-behavior)
+  - [Local web UI](#local-web-ui)
+  - [Home Assistant & ESPHome API](#home-assistant--esphome-api)
+  - [Firmware updates](#firmware-updates)
+- [Documentation TODOs](#documentation-todos)
+- [License](#license)
+
 ## Features
 
 - Measures CO2, Temperature, Humidity, PM1.0, PM2.5, PM4.0, PM10, VOC index, and NOx index using the **Sensirion SEN66**
@@ -20,7 +39,7 @@ This repository contains the full project source:
 - Serves a **local web dashboard** from the device itself
 - Supports **ESPHome / Home Assistant** integration
 - Supports **USB factory flashing**, **firmware recovery**, and **OTA updates**
-- Can run **with or without Wi-Fi**
+- Fully local, and can run **with or without Wi-Fi**
 
 ## Hardware
 

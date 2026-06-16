@@ -63,17 +63,17 @@ hardware/
 - A YAML `interval` calls `aether::aether_epaper::tick_and_draw(...)` every **500ms**.
 - Display and web UI both consume the same nine sensor values:
 
-| YAML sensor ID | Metric | Web UI key |
-| --- | --- | --- |
-| `co2` | CO2 | `co2` |
-| `temp` | Temperature | `temp` |
-| `rh` | Humidity | `rh` |
-| `pm1_0` | PM1.0 | `pm1` |
-| `pm2_5` | PM2.5 | `pm25` |
-| `pm4_0` | PM4.0 | `pm4` |
-| `pm10_0` | PM10 | `pm10` |
-| `voc_index` | VOC Index | `voc` |
-| `nox_index` | NOx Index | `nox` |
+| YAML sensor ID | Metric      | Web UI key |
+| -------------- | ----------- | ---------- |
+| `co2`          | CO2         | `co2`      |
+| `temp`         | Temperature | `temp`     |
+| `rh`           | Humidity    | `rh`       |
+| `pm1_0`        | PM1.0       | `pm1`      |
+| `pm2_5`        | PM2.5       | `pm25`     |
+| `pm4_0`        | PM4.0       | `pm4`      |
+| `pm10_0`       | PM10        | `pm10`     |
+| `voc_index`    | VOC Index   | `voc`      |
+| `nox_index`    | NOx Index   | `nox`      |
 
 When adding or renaming a metric, keep YAML IDs, `aether_web_ui` config keys, Python codegen, C++ setters/fields, display cache state, and web JS rendering aligned.
 
@@ -219,4 +219,4 @@ esphome compile aether.yaml
 
 ## Maintenance Rule
 
-Keep this file in sync with the actual repo. Update it when repository structure, firmware wiring, or OTA/flash workflows materially change.
+Keep this file, as well as any other markdown documentation, in sync with the actual repo. Update it when repository structure, firmware wiring, or OTA/flash workflows materially change.
