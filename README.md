@@ -1,6 +1,7 @@
 # Aether
+<img width="4285" height="2857" alt="A6700222" src="https://github.com/user-attachments/assets/8be34c35-cbe4-4628-9b6f-72ee45ff123e" />
 
-Aether is a comprehensive air quality monitor by [**Syntropy Labs**](https://syntropylabs.io/products/aether-air-quality-monitor) built around an ESP32-C3, a Sensirion SEN66 sensor, and a 3.7" e-paper display. It measures **CO2, Temperature, Humidity, PM1.0, PM2.5, PM4.0, PM10, VOC index, and NOx index**, and exposes those readings on-device, on the local network, and through Home Assistant.
+### Aether is a comprehensive air quality monitor by [**Syntropy Labs**](https://syntropylabs.io/products/aether-air-quality-monitor) built around an ESP32-C3, a Sensirion SEN66 sensor, and a 3.7" e-paper display. It measures **CO2, Temperature, Humidity, PM1.0, PM2.5, PM4.0, PM10, VOC index, and NOx index**, and exposes those readings on-device, on the local network, and through Home Assistant.
 
 This repository contains the full project source:
 
@@ -12,6 +13,8 @@ This repository contains the full project source:
 | `hardware/datasheets/`    | Reference datasheets used during hardware design                           |
 | `enclosure/`              | SolidWorks enclosure and assembly files                                    |
 | `flash/`                  | WebUSB flashing page and firmware manifests                                |
+
+<img width="5056" height="3371" alt="A6700230" src="https://github.com/user-attachments/assets/9861c7f3-c20a-4694-845d-c945b032f5fe" />
 
 ## Contents
 
@@ -29,7 +32,6 @@ This repository contains the full project source:
   - [Local web UI](#local-web-ui)
   - [Home Assistant & ESPHome API](#home-assistant--esphome-api)
   - [Firmware updates](#firmware-updates)
-- [Documentation TODOs](#documentation-todos)
 - [License](#license)
 
 ## Features
@@ -60,15 +62,28 @@ To build one Aether unit, this repository currently points to the following core
 
 High-level assembly flow:
 
-1. Press-fit the SEN66 into the enclosure body.
-2. Connect the e-paper display to the PCB with the FPC connector.
-3. Press-fit the PCB into the enclosure body.
-4. Connect 6-pin JST GH Cable
-5. Bring display over in position above the PCB.
-6. Attach the display cover.
-7. Secure the assembly from the bottom with the two M3 fasteners.
+### 1. Press-fit the SEN66 into the enclosure body.
+<p align="center"><img alt="Insert_SEN66_into_Enclosure" src="https://github.com/user-attachments/assets/6f8cd045-af82-40ae-ae59-631ba9e61631" width="700"></p>
 
-> **TODO:** Add assembly photos for each step.
+### 2. Connect the e-paper display to the PCB with the FPC connector.
+<p align="center"><img alt="Connect_ePaper_to_PCB" src="https://github.com/user-attachments/assets/74e306dd-42e3-4feb-860c-e935da8fb220" width="700"></p>
+
+### 3. Press-fit the PCB into the enclosure body.
+<p align="center"><img alt="Insert_PCB_into_Enclosure" src="https://github.com/user-attachments/assets/752068ef-0f64-40fd-9949-34c260d7f2eb" width="700"></p>
+
+### 4. Connect 6-pin JST GH Cable.
+<p align="center"><img alt="Connect_JST_Cable" src="https://github.com/user-attachments/assets/cb314557-cf85-4ab1-a9ef-7a8a2115400f" width="700"></p>
+
+### 5. Bring display over in position above the PCB.
+<p align="center"><img alt="Display_Placement_1" src="https://github.com/user-attachments/assets/120c1d63-db2c-4569-8030-ebec3ec0e074" width="700"></p>
+<p align="center"><img alt="Display_Placement_2" src="https://github.com/user-attachments/assets/8cbffd19-aee5-40a8-b3b6-ce1f91275711" width="700"></p>
+
+### 6. Attach the display cover.
+<p align="center"><img alt="Attach_Display_Cover" src="https://github.com/user-attachments/assets/800e34a6-3082-4a30-908d-15d8ea018a68" width="700"></p>
+
+### 7. Secure the assembly from the bottom with the two M3 fasteners.
+<p align="center"><img alt="Secure_With_M3_Screws" src="https://github.com/user-attachments/assets/4d94f443-7d26-4a1e-abb5-98dc9f584dc8" width="700"></p>
+
 
 ## Setup
 
@@ -99,7 +114,6 @@ On boot, Aether can expose a temporary setup access point so you can connect it 
 Once connected to Wi-Fi, the device also hosts its own local web UI on port 80.
 
 > **TODO:** Add the exact captive portal steps and screenshots.
->
 > **TODO:** Add the default setup AP naming example shown to end users during onboarding.
 
 ### Firmware development
@@ -173,16 +187,6 @@ Aether supports more than one update path:
 - **HTTP-based update checks** when the device is online
 
 Use the USB flashing page for first-time setup and recovery. Use the local web UI for routine updates on devices that are already deployed.
-
-## Documentation TODOs
-
-- Add final public flashing URL
-- Add a curated BOM with sourcing links
-- Add assembly photos
-- Add enclosure print settings and build notes
-- Add captive portal screenshots and onboarding copy
-- Add web UI screenshots
-- Add Home Assistant setup details and exposed entities
 
 ## License
 
