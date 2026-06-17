@@ -3,7 +3,7 @@
 
 ### Aether is a comprehensive air quality monitor by [**Syntropy Labs**](https://syntropylabs.io/products/aether-air-quality-monitor) built around an ESP32-C3, a Sensirion SEN66 sensor, and a 3.7" e-paper display. It measures **CO2, Temperature, Humidity, PM1.0, PM2.5, PM4.0, PM10, VOC index, and NOx index**, and exposes those readings on-device, on the local network, and through Home Assistant.
 
-This repository contains the full project source:
+## Repo Guide
 
 | Path                      | Contents                                                                   |
 | ------------------------- | -------------------------------------------------------------------------- |
@@ -13,8 +13,6 @@ This repository contains the full project source:
 | `hardware/datasheets/`    | Reference datasheets used during hardware design                           |
 | `enclosure/`              | SolidWorks enclosure and assembly files                                    |
 | `flash/`                  | WebUSB flashing page and firmware manifests                                |
-
-<img width="5056" height="3371" alt="A6700230" src="https://github.com/user-attachments/assets/9861c7f3-c20a-4694-845d-c945b032f5fe" />
 
 ## Contents
 
@@ -45,18 +43,18 @@ This repository contains the full project source:
 
 ## Hardware
 
-To build one Aether unit, this repository currently points to the following core parts:
+To build one Aether unit, the following core parts are needed:
 
 | Part                                      | Link                                                      |
 | ----------------------------------------- | --------------------------------------------------------- |
-| **Aether PCB**                            | `hardware/pcb/`, `hardware/manufacturing/`                |
-| **3.7" e-paper display module**           | TBD                                                       |
+| **Aether PCB**                            | [Syntropy Labs Store](https://syntropylabs.io/products/aether-air-quality-monitor-custom-pcb) (PCB files available in [`hardware/`](https://github.com/EnriqueNeyra/aether/tree/main/hardware/manufacturing) folder) |
+| **3.7" e-paper display module**           | [Good Display](https://buy-lcd.com/products/37-inch-416x240-e-paper-black-and-white-spi-fast-refresh-electronic-eink-display-screen-esl-gdey037t03?VariantsId=10346) |
 | **Sensirion SEN66** air quality sensor    | [Sensirion](https://sensirion.com/products/catalog/SEN66) |
-| **3D-printed enclosure parts**            | TBD (also in `enclosure/`)                                |
-| **Reverse 6-pin JST-GH cable**            | TBD                                                       |
-| **2x M3 x 6 mm screws and matching nuts** | TBD                                                       |
+| **Reverse 6-pin JST-GH cable**            | [Adafruit](https://www.adafruit.com/product/5754?srsltid=AfmBOopcC6siE6KqjNqU-nj7AwIrnvlDSqnL19iwFrZ47O6lRIhqRYC8) / [AliExpress](https://www.aliexpress.us/w/wholesale-jst-gh-1.25mm-connector-6-pin-reverse.html?spm=a2g0o.detail.search.0) |
+| **3D-printed enclosure parts**            | [`enclosure/`](https://github.com/EnriqueNeyra/aether/tree/main/enclosure) |
+| **2x M3 x 6 mm countersunk screws + nuts** | [Screws](https://amzn.to/3SKvOgg) / [Nuts](https://amzn.to/44jUIG1) |
 
-> **TODO:** Add exact purchase links, approved part numbers, and a cleaned-up builder BOM for anyone sourcing parts manually.
+<p align="center"><img alt="A6700230" src="https://github.com/user-attachments/assets/9861c7f3-c20a-4694-845d-c945b032f5fe" width="700"></p>
 
 ## Assembly
 
