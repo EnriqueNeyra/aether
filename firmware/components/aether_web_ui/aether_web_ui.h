@@ -10,6 +10,7 @@
 
 #include <string>
 #include <cmath>
+#include <functional>
 
 
 namespace aether
@@ -41,6 +42,7 @@ namespace aether
 
     void set_fw_update(UpdateEntity *u) { fw_update_ = u; }
     void set_temp_unit_switch(Select *s) { temp_unit_select_ = s; }
+    void set_on_check_update(std::function<void()> f) { on_check_update_ = f; }
 
     void setup() override
     {
@@ -69,7 +71,7 @@ namespace aether
     bool canHandle(AsyncWebServerRequest *request) const override
     {
       auto url = request->url();
-      if (url == "/" || url == "/index.html")
+      if ((url == "/" || url == "/index.html") && !request->hasArg("save"))
         return true;
       if (url.rfind("/api/", 0) == 0)
         return true;
@@ -90,6 +92,10 @@ namespace aether
       else if (url == "/api/perform_update")
       {
         handle_perform_update_(request);
+      }
+      else if (url == "/api/check_update")
+      {
+        handle_check_update_(request);
       }
       else if (url == "/api/temp_unit")
       {
@@ -116,6 +122,7 @@ namespace aether
 
     UpdateEntity *fw_update_{nullptr};
     Select *temp_unit_select_{nullptr};
+    std::function<void()> on_check_update_{nullptr};
 
     static bool has_value_(Sensor *s)
     {
@@ -269,6 +276,30 @@ namespace aether
       ESP_LOGI(TAG, "Starting http_request firmware update via web UI");
       // false = do not force if it thinks there is no update; UI already checks versions
       fw_update_->perform(false);
+      request->send(200, "application/json", "{\"ok\":true}");
+    }
+
+    void handle_check_update_(AsyncWebServerRequest *request)
+    {
+      if (request->method() != HTTP_POST)
+      {
+        request->send(405, "application/json",
+                      "{\"ok\":false,\"error\":\"method_not_allowed\"}");
+        return;
+      }
+      if (fw_update_ == nullptr)
+      {
+        ESP_LOGW(TAG, "Check update requested but http_request update component is not wired");
+        request->send(500, "application/json",
+                      "{\"ok\":false,\"error\":\"update_not_configured\"}");
+        return;
+      }
+
+      ESP_LOGI(TAG, "Triggering firmware update check via web UI");
+      if (on_check_update_)
+      {
+        on_check_update_();
+      }
       request->send(200, "application/json", "{\"ok\":true}");
     }
 

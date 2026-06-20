@@ -28,6 +28,7 @@
     const fwBadgeEl = document.getElementById('fw-badge');
     const fwStatusTextEl = document.getElementById('fw-status-text');
     const fwUpdateBtn = document.getElementById('fw-update-btn');
+    const fwCheckBtn = document.getElementById('fw-check-btn');
 
     const unitButtons = document.querySelectorAll('.unit-btn');
 
@@ -177,6 +178,28 @@
           renderFirmwareStatus();
         }, 3000);
       }
+    });
+
+    fwCheckBtn.addEventListener('click', async () => {
+      if (fwCheckBtn.disabled) return;
+      const originalText = fwCheckBtn.textContent;
+      fwCheckBtn.disabled = true;
+      fwCheckBtn.textContent = 'Checking...';
+      fwStatusTextEl.textContent = 'Checking for updates...';
+
+      try {
+        const res = await fetch('/api/check_update', { method: 'POST' });
+        if (!res.ok) throw new Error('bad status');
+        fwStatusTextEl.textContent = 'Check initiated.';
+      } catch (e) {
+        fwStatusTextEl.textContent = 'Failed to check for updates. Check connection and try again.';
+      }
+
+      setTimeout(() => {
+        fwCheckBtn.textContent = originalText;
+        fwCheckBtn.disabled = false;
+        renderFirmwareStatus();
+      }, 3000);
     });
 
     async function pollState() {
