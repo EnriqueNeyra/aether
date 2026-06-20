@@ -29,6 +29,7 @@ jobs:
 
       - name: Build Pages artifact
         run: |
+          mkdir -p site
           cp -r www/* site/
           cp manifests/manifest.json site/manifest.json
           cp manifests/ota-manifest.json site/ota-manifest.json
