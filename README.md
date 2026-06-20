@@ -20,17 +20,16 @@
 - [Features](#features)
 - [Hardware](#hardware)
 - [Assembly](#assembly)
-- [Setup](#setup)
+- [Firmware Setup](#firmware-setup)
   - [Flashing firmware onto a device](#flashing-firmware-onto-a-device)
-  - [First-time network setup](#first-time-network-setup)
   - [Firmware development](#firmware-development)
 - [Using Aether](#using-aether)
   - [Normal operation](#normal-operation)
-  - [Wi-Fi behavior](#wi-fi-behavior)
+  - [Wi-Fi setup and behavior](#wi-fi-setup-and-behavior)
   - [Side button behavior](#side-button-behavior)
   - [Local web UI](#local-web-ui)
   - [Home Assistant & ESPHome API](#home-assistant--esphome-api)
-  - [Firmware updates](#firmware-updates)
+  - [Updates](#pdates)
 - [License](#license)
 
 ## Features
@@ -90,7 +89,8 @@ High-level assembly flow:
 
 <p align="center"><img alt="Secure_With_M3_Screws" src="https://github.com/user-attachments/assets/4d94f443-7d26-4a1e-abb5-98dc9f584dc8" width="700"></p>
 
-## Setup
+## Firmware Setup
+_Any Aether devices purchased through [**Syntropy Labs**](https://syntropylabs.io/) are pre-flashed with device firmware and fully tested_
 
 ### Flashing firmware onto a device
 
@@ -109,18 +109,6 @@ High-level assembly flow:
 
 _Note: The flashing page in `flash/` is built around **ESP Web Tools / WebUSB** and is intended to work best in **Chrome or Edge**._
 
-### First-time network setup
-
-On boot, Aether can expose a temporary setup access point so you can connect it to Wi-Fi through the captive portal flow.
-
-- If you want **local web UI access**, **network-based updates**, or **Home Assistant integration**, connect the device to Wi-Fi during setup.
-- If you do **not** configure Wi-Fi, the device is still intended to work as a standalone monitor in **offline mode**.
-
-Once connected to Wi-Fi, the device also hosts its own local web UI on port 80.
-
-> **TODO:** Add the exact captive portal steps and screenshots.
-> **TODO:** Add the default setup AP naming example shown to end users during onboarding.
-
 ### Firmware development
 
 If you are working on the ESPHome firmware:
@@ -134,6 +122,7 @@ cd "aether/firmware"
 cd firmware
 esphome config aether.yaml
 esphome compile aether.yaml
+esphome run aether.yaml
 ```
 
 ## Using Aether
@@ -142,11 +131,16 @@ esphome compile aether.yaml
 
 Once powered, Aether reads the SEN66 and refreshes both the on-device display and the local web dashboard. Temperature can be shown in either **Fahrenheit** or **Celsius**.
 
-### Wi-Fi behavior
+### Wi-Fi setup and behavior
 
-- Aether can be set up on Wi-Fi through captive portal onboarding.
-- If no Wi-Fi is configured, it can still operate as an offline monitor.
-- If Wi-Fi is configured, the device can expose its local web dashboard and participate in network-based update and automation flows.
+On boot, Aether will expose a temporary setup access point so you can connect it to Wi-Fi through the captive portal flow. The network will appear as **aether-XXXXX**. 
+
+<p align="center"><img alt="aether-access-point" src="https://github.com/user-attachments/assets/989b05f5-8eb8-44bc-84a7-8de18c8cad2c"></p> 
+
+- If you want **local web UI access**, **network-based ota updates**, or **Home Assistant integration**, connect the device to Wi-Fi during setup.
+- If you do **not** configure Wi-Fi, the device will still work as a standalone monitor **fully offline**.
+
+Once connected to the access point, you will automatically be redirected to the captive portal. Select your network and enter the password to connect. Once connected to Wi-Fi, the device also hosts its [local web UI](#local-web-ui) at **aether-XXXXXX.local** or the **device's local IP**.
 
 ### Side button behavior
 
@@ -155,8 +149,6 @@ The side / boot button supports multiple actions:
 - **Short press:** toggles between the normal dashboard and the info screen
 - **Long press from the normal screen:** enters factory reset confirmation
 - **Long press again on the reset screen:** confirms the factory reset flow
-
-> **TODO:** Add a short visual or photo showing the physical button location.
 
 ### Local web UI
 
@@ -167,29 +159,26 @@ When Aether is on your network, it serves a local browser-based dashboard direct
 - Firmware version and update status
 - A way to trigger firmware updates from the device UI
 
-> **TODO:** Add screenshots of the web UI.
->
-> **TODO:** Add the exact local hostname / URL pattern users should expect after setup.
-
 ### Home Assistant & ESPHome API
 
 Because Aether runs ESPHome, it features a native API over Wi-Fi. This allows for:
 
-- **Zero-configuration Home Assistant Integration:** Aether will automatically appear in Home Assistant via mDNS discovery once connected to your network. It securely exposes all 9 sensor metrics (CO2, Temp, PM2.5, etc.) without requiring an MQTT broker or cloud account.
+- **Automatic Home Assistant Integration:** Aether will automatically appear in Home Assistant integrations dashboard once connected to your network. It securely exposes all 9 sensor metrics (CO2, Temp, PM2.5, etc).
+
+[![Open your Home Assistant instance and show your integrations.](https://my.home-assistant.io/badges/integrations.svg)](https://my.home-assistant.io/redirect/integrations/) 
+
 - **Custom Integrations:** You can integrate Aether into your own software or scripts using its local HTTP API. Exposed endpoints include:
   - `GET /api/state` - Returns a JSON object with all current sensor metrics and device status.
   - `POST /api/temp_unit?unit=C|F` - Changes the preferred temperature unit.
   - `POST /api/perform_update` - Triggers the device to immediately begin downloading and installing the latest firmware update over HTTP (if one is available).
 
-> **TODO:** Add the exact Home Assistant onboarding flow, discovery behavior, and the list of exposed entities once that user-facing flow is finalized.
-
-### Firmware updates
+### Updates
 
 Aether supports more than one update path:
 
-- **Local USB flashing** through the WebUSB tool in `flash/`
+- **Local USB flashing** through the [WebUSB flashing tool](https://aether.syntropylabs.io/flash/) (source located in `flash/`)
 - **In-device update flow** through the local web UI
-- **HTTP-based update checks** when the device is online
+- **Home Assistant** when the device is online
 
 Use the USB flashing page for first-time setup and recovery. Use the local web UI for routine updates on devices that are already deployed.
 
