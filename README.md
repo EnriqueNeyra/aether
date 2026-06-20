@@ -97,7 +97,7 @@ High-level assembly flow:
 #### For a new board or a device that needs recovery:
 
 1. Connect Aether to your computer over USB.
-2. Open the [Aether WebUSB flashing tool](aether.syntropylabs.io/flash)
+2. Open the [Aether WebUSB flashing tool](https://aether.syntropylabs.io/flash/).
 3. Choose **Factory flash (recommended)** for first-time setup or full recovery.
 4. Keep the page open until flashing is complete.
 5. Let the device boot.
