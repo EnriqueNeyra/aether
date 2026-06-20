@@ -1,12 +1,12 @@
 {
   "name": "syntropylabs.aether",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "builds": [
     {
       "chipFamily": "ESP32-C3",
       "ota": {
         "path": "https://aether.syntropylabs.io/flash/aether-ota.bin",
-        "md5": "bfd37871129443effdb212a3c3c50117"
+        "md5": "7578a56cca09d317601133ec3f107d7b"
       }
     }
   ]
