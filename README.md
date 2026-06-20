@@ -135,7 +135,7 @@ Once powered, Aether reads the SEN66 and refreshes both the on-device display an
 
 On boot, Aether will expose a temporary setup access point so you can connect it to Wi-Fi through the captive portal flow. The network will appear as **aether-XXXXX**. 
 
-<p align="center"><img alt="aether-access-point" src="https://github.com/user-attachments/assets/989b05f5-8eb8-44bc-84a7-8de18c8cad2c"></p> 
+<p align="center"><img alt="aether-access-point" src="https://github.com/user-attachments/assets/989b05f5-8eb8-44bc-84a7-8de18c8cad2c" width="300"></p> 
 
 - If you want **local web UI access**, **network-based ota updates**, or **Home Assistant integration**, connect the device to Wi-Fi during setup.
 - If you do **not** configure Wi-Fi, the device will still work as a standalone monitor **fully offline**.
@@ -165,7 +165,11 @@ Because Aether runs ESPHome, it features a native API over Wi-Fi. This allows fo
 
 - **Automatic Home Assistant Integration:** Aether will automatically appear in Home Assistant integrations dashboard once connected to your network. It securely exposes all 9 sensor metrics (CO2, Temp, PM2.5, etc).
 
-[![Open your Home Assistant instance and show your integrations.](https://my.home-assistant.io/badges/integrations.svg)](https://my.home-assistant.io/redirect/integrations/) 
+<p align="center">
+  <a href="https://my.home-assistant.io/redirect/integrations/">
+    <img src="https://my.home-assistant.io/badges/integrations.svg" alt="Open your Home Assistant instance and show your integrations.">
+  </a>
+</p>
 
 - **Custom Integrations:** You can integrate Aether into your own software or scripts using its local HTTP API. Exposed endpoints include:
   - `GET /api/state` - Returns a JSON object with all current sensor metrics and device status.
