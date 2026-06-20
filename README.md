@@ -59,7 +59,7 @@ To build one Aether unit, the following core parts are needed:
 
 ### Alternative Display Compatibility
 
-The Aether PCB implements the standard 24-pin FPC e-paper interface. While designed for the 3.7" GDEY037T03, it is hardware-compatible with many other common e-paper panels (e.g., those using SSD1680, UC8151D, and IL0373 driver ICs).
+The Aether PCB implements the standard 24-pin FPC e-paper interface. While designed for the 3.7" GDEY037T03, it is hardware-compatible with many other common e-paper panels (e.g., those using SSD1680, UC8151D, and IL0373 driver ICs). **Please note that these alternative displays have not yet been tested or confirmed to work with this device.**
 
 If you choose to use an alternative display, you will need to:
 1. **Update the firmware** to instantiate the correct `GxEPD2` display driver class.
