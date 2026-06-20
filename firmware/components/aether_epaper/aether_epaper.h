@@ -19,8 +19,8 @@
 #include "Inter_Bold9pt7b.h"
 #include "Inter_Bold_Tabular18pt7b.h"
 #include "Inter_Bold_Tabular24pt7b.h"
-#include "Satoshi_800_Device_Information_Subset18pt7b.h"
-#include "Satoshi_800_Factory_Reset_Subset22pt7b.h"
+#include "Inter_ExtraBold_Device_Information_Subset18pt7b.h"
+#include "Inter_ExtraBold_Factory_Reset_Subset20pt7b.h"
 #include "Satoshi_800_Logo_Subset22pt7b.h"
 #include "aether_epaper_layout.h"
 
@@ -290,7 +290,7 @@ namespace aether
       display.setTextColor(GxEPD_BLACK);
 
       aether_epaper_layout::print_centered(display, display.width() / 2, 36,
-                                           &Satoshi_800_Device_Information_Subset18pt7b,
+                                           &Inter_ExtraBold_Device_Information_Subset18pt7b,
                                            "Device Information");
       aether_epaper_layout::draw_divider(display, 154, 261, 47);
     }
@@ -421,7 +421,7 @@ namespace aether
         aether_epaper_layout::draw_info_triangle(display, display.width() - 18, 13, 14, 26);
 
         aether_epaper_layout::print_centered(display, display.width() / 2, 49,
-                                              &Satoshi_800_Factory_Reset_Subset22pt7b,
+                                              &Inter_ExtraBold_Factory_Reset_Subset20pt7b,
                                               "Factory Reset");
         aether_epaper_layout::draw_divider(display, 155, 260, 68);
 

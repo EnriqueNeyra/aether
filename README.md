@@ -1,4 +1,5 @@
 # Aether
+
 <img width="4285" height="2857" alt="A6700222" src="https://github.com/user-attachments/assets/8be34c35-cbe4-4628-9b6f-72ee45ff123e" />
 
 ### Aether is a comprehensive air quality monitor by [**Syntropy Labs**](https://syntropylabs.io/products/aether-air-quality-monitor) built around an ESP32-C3, a Sensirion SEN66 sensor, and a 3.7" e-paper display. It measures **CO2, Temperature, Humidity, PM1.0, PM2.5, PM4.0, PM10, VOC index, and NOx index**, and exposes those readings on-device, on the local network, and through Home Assistant.
@@ -45,14 +46,14 @@
 
 To build one Aether unit, the following core parts are needed:
 
-| Part                                      | Link                                                      |
-| ----------------------------------------- | --------------------------------------------------------- |
-| **Aether PCB**                            | [Syntropy Labs Store](https://syntropylabs.io/products/aether-air-quality-monitor-custom-pcb) (PCB files available in [`hardware/`](https://github.com/EnriqueNeyra/aether/tree/main/hardware/manufacturing) folder) |
-| **3.7" e-paper display module**           | [Good Display](https://buy-lcd.com/products/37-inch-416x240-e-paper-black-and-white-spi-fast-refresh-electronic-eink-display-screen-esl-gdey037t03?VariantsId=10346) |
-| **Sensirion SEN66** air quality sensor    | [Sensirion](https://sensirion.com/products/catalog/SEN66) |
-| **Reverse 6-pin JST-GH cable**            | [Adafruit](https://www.adafruit.com/product/5754?srsltid=AfmBOopcC6siE6KqjNqU-nj7AwIrnvlDSqnL19iwFrZ47O6lRIhqRYC8) / [AliExpress](https://www.aliexpress.us/w/wholesale-jst-gh-1.25mm-connector-6-pin-reverse.html?spm=a2g0o.detail.search.0) |
-| **3D-printed enclosure parts**            | [`enclosure/`](https://github.com/EnriqueNeyra/aether/tree/main/enclosure) |
-| **2x M3 x 6 mm countersunk screws + nuts** | [Screws](https://amzn.to/3SKvOgg) / [Nuts](https://amzn.to/44jUIG1) |
+| Part                                       | Link                                                                                                                                                                                                                                          |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Aether PCB**                             | [Syntropy Labs Store](https://syntropylabs.io/products/aether-air-quality-monitor-custom-pcb) (PCB files available in [`hardware/`](https://github.com/EnriqueNeyra/aether/tree/main/hardware/manufacturing) folder)                          |
+| **3.7" e-paper display module**            | [Good Display](https://buy-lcd.com/products/37-inch-416x240-e-paper-black-and-white-spi-fast-refresh-electronic-eink-display-screen-esl-gdey037t03?VariantsId=10346)                                                                          |
+| **Sensirion SEN66** air quality sensor     | [Sensirion](https://sensirion.com/products/catalog/SEN66)                                                                                                                                                                                     |
+| **Reverse 6-pin JST-GH cable**             | [Adafruit](https://www.adafruit.com/product/5754?srsltid=AfmBOopcC6siE6KqjNqU-nj7AwIrnvlDSqnL19iwFrZ47O6lRIhqRYC8) / [AliExpress](https://www.aliexpress.us/w/wholesale-jst-gh-1.25mm-connector-6-pin-reverse.html?spm=a2g0o.detail.search.0) |
+| **3D-printed enclosure parts**             | [`enclosure/`](https://github.com/EnriqueNeyra/aether/tree/main/enclosure)                                                                                                                                                                    |
+| **2x M3 x 6 mm countersunk screws + nuts** | [Screws](https://amzn.to/3SKvOgg) / [Nuts](https://amzn.to/44jUIG1)                                                                                                                                                                           |
 
 <p align="center"><img alt="A6700230" src="https://github.com/user-attachments/assets/9861c7f3-c20a-4694-845d-c945b032f5fe" width="700"></p>
 
@@ -61,33 +62,39 @@ To build one Aether unit, the following core parts are needed:
 High-level assembly flow:
 
 ### 1. Press-fit the SEN66 into the enclosure body.
+
 <p align="center"><img alt="Insert_SEN66_into_Enclosure" src="https://github.com/user-attachments/assets/6f8cd045-af82-40ae-ae59-631ba9e61631" width="700"></p>
 
 ### 2. Connect the e-paper display to the PCB with the FPC connector.
+
 <p align="center"><img alt="Connect_ePaper_to_PCB" src="https://github.com/user-attachments/assets/74e306dd-42e3-4feb-860c-e935da8fb220" width="700"></p>
 
 ### 3. Press-fit the PCB into the enclosure body.
+
 <p align="center"><img alt="Insert_PCB_into_Enclosure" src="https://github.com/user-attachments/assets/752068ef-0f64-40fd-9949-34c260d7f2eb" width="700"></p>
 
 ### 4. Connect 6-pin JST GH Cable.
+
 <p align="center"><img alt="Connect_JST_Cable" src="https://github.com/user-attachments/assets/cb314557-cf85-4ab1-a9ef-7a8a2115400f" width="700"></p>
 
 ### 5. Bring display over in position above the PCB.
+
 <p align="center"><img alt="Display_Placement_1" src="https://github.com/user-attachments/assets/120c1d63-db2c-4569-8030-ebec3ec0e074" width="700"></p>
 <p align="center"><img alt="Display_Placement_2" src="https://github.com/user-attachments/assets/8cbffd19-aee5-40a8-b3b6-ce1f91275711" width="700"></p>
 
 ### 6. Attach the display cover.
+
 <p align="center"><img alt="Attach_Display_Cover" src="https://github.com/user-attachments/assets/800e34a6-3082-4a30-908d-15d8ea018a68" width="700"></p>
 
 ### 7. Secure the assembly from the bottom with the two M3 fasteners.
-<p align="center"><img alt="Secure_With_M3_Screws" src="https://github.com/user-attachments/assets/4d94f443-7d26-4a1e-abb5-98dc9f584dc8" width="700"></p>
 
+<p align="center"><img alt="Secure_With_M3_Screws" src="https://github.com/user-attachments/assets/4d94f443-7d26-4a1e-abb5-98dc9f584dc8" width="700"></p>
 
 ## Setup
 
 ### Flashing firmware onto a device
 
-For a new board or a device that needs recovery:
+#### For a new board or a device that needs recovery:
 
 1. Connect Aether to your computer over USB.
 2. Open the [Aether WebUSB flashing tool](aether.syntropylabs.io/flash)
@@ -95,12 +102,12 @@ For a new board or a device that needs recovery:
 4. Keep the page open until flashing is complete.
 5. Let the device boot.
 
-For a device that is already set up and just needs newer firmware:
+#### For a device that is already set up and just needs newer firmware:
 
 1. Connect the device over USB and open the same flashing page.
 2. Choose **Update firmware (OTA)** if you want to preserve the current device settings.
 
-The flashing page in `flash/` is built around **ESP Web Tools / WebUSB** and is intended to work best in **Chrome or Edge**.
+_Note: The flashing page in `flash/` is built around **ESP Web Tools / WebUSB** and is intended to work best in **Chrome or Edge**._
 
 ### First-time network setup
 
@@ -119,8 +126,8 @@ Once connected to Wi-Fi, the device also hosts its own local web UI on port 80.
 If you are working on the ESPHome firmware:
 
 ```sh
-git clone https://github.com/EnriqueNeyra/Aeroq.git
-cd "Aeroq/Aeroq Firmware"
+git clone https://github.com/EnriqueNeyra/aether.git
+cd "aether/firmware"
 ```
 
 ```sh

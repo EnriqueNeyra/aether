@@ -10,7 +10,7 @@ extern const GFXfont Inter_Bold12pt7b;
 extern const GFXfont Inter_Bold18pt7b;
 extern const GFXfont Inter_Bold_Tabular18pt7b;
 extern const GFXfont Inter_Bold_Tabular24pt7b;
-extern const GFXfont Satoshi_800_Device_Information_Subset18pt7b;
+extern const GFXfont Inter_ExtraBold_Device_Information_Subset18pt7b;
 
 namespace aether
 {
@@ -383,7 +383,7 @@ namespace aether
       static constexpr int hold_line_gap = 18;
 
       print_centered(display, display.width() / 2, 36,
-                     &Satoshi_800_Device_Information_Subset18pt7b, title);
+                     &Inter_ExtraBold_Device_Information_Subset18pt7b, title);
       draw_centered_info_underline(display, display.width() / 2, 47, 108);
       draw_info_triangle(display, display.width() - 18, 13, 14, 26);
 

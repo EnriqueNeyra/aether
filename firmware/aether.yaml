@@ -16,8 +16,8 @@ esphome:
     - components/aether_epaper/fonts/Inter_Bold18pt7b.h
     - components/aether_epaper/fonts/Inter_Bold_Tabular18pt7b.h
     - components/aether_epaper/fonts/Inter_Bold_Tabular24pt7b.h
-    - components/aether_epaper/fonts/Satoshi_800_Device_Information_Subset18pt7b.h
-    - components/aether_epaper/fonts/Satoshi_800_Factory_Reset_Subset22pt7b.h
+    - components/aether_epaper/fonts/Inter_ExtraBold_Device_Information_Subset18pt7b.h
+    - components/aether_epaper/fonts/Inter_ExtraBold_Factory_Reset_Subset20pt7b.h
     - components/aether_epaper/fonts/Satoshi_800_Logo_Subset22pt7b.h
 
   on_boot:
