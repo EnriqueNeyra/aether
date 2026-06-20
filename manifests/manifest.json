@@ -6,7 +6,7 @@
       "chipFamily": "ESP32-C3",
       "parts": [
         {
-          "path": "https://aether.syntropylabs.io/flash/aether-factory.bin",
+          "path": "https://aether.syntropylabs.io/aether-factory.bin",
           "offset": 0
         }
       ]

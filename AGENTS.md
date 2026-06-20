@@ -1,6 +1,6 @@
 ## Project Summary
 
-Aether is a full air-quality monitor project built around an ESP32-C3, a Sensirion SEN66, a 3.7" GDEY037T03 e-paper display, a local browser UI, a WebUSB flashing page, and the supporting PCB/enclosure design files. Most agent work should focus on `firmware/` and `flash/`; `hardware/` and `enclosure/` are reference/design assets and should usually only receive small, targeted documentation or file-organization updates.
+Aether is a full air-quality monitor project built around an ESP32-C3, a Sensirion SEN66, a 3.7" GDEY037T03 e-paper display, a local browser UI, a WebUSB flashing page, and the supporting PCB/enclosure design files. Most agent work should focus on `firmware/`, `manifests/`, and `www/`; `hardware/` and `enclosure/` are reference/design assets and should usually only receive small, targeted documentation or file-organization updates.
 
 ## Repository Layout
 
@@ -20,10 +20,13 @@ firmware/
 │       ├── aether_web_ui.h                # AsyncWebHandler + JSON/API endpoints
 │       ├── aether_web_ui_html.h           # Auto-generated; do not edit directly
 │       └── web/                           # Source HTML/CSS/JS for the device UI
-flash/
-├── index.html                             # WebUSB / ESP Web Tools flashing page
+manifests/
 ├── manifest.json                          # Factory flashing manifest
 └── ota-manifest.json                      # OTA manifest consumed by firmware updates
+www/
+├── index.html                             # Combined Quick Start Guide & WebUSB flasher
+├── style.css                              # Site styling
+└── app.js                                 # Scroll animations and tab logic
 hardware/
 ├── pcb/                                   # KiCad project
 ├── manufacturing/                         # PCB zip, BOM, centroid exports
@@ -32,7 +35,7 @@ hardware/
 
 ## Agent Priorities
 
-- Prioritize `firmware/` and `flash/`.
+- Prioritize `firmware/`, `www/`, and `manifests/`.
 - Keep `hardware/` and `enclosure/` changes brief and surgical unless the user explicitly asks for CAD/PCB work.
 - Do not hand-edit `firmware/components/aether_web_ui/aether_web_ui_html.h`; edit `web/index.html`, `web/style.css`, and `web/app.js` instead.
 
@@ -129,7 +132,7 @@ The firmware exposes two update mechanisms:
 
 Current OTA source in firmware:
 
-- Manifest URL: `https://aether.syntropylabs.io/flash/ota-manifest.json`
+- Manifest URL: `https://aether.syntropylabs.io/ota-manifest.json`
 - Release binary URL inside the manifest: GitHub Releases `aether-ota.bin`
 
 The web UI triggers installation through `fw_update_->perform(false)`.
@@ -148,15 +151,15 @@ The boot button supports two gestures via `on_multi_click`:
 - Short press (50ms-1s): toggle normal/info screen
 - Long press (>=3s): enter reset flow, confirm reset, or reboot from disconnected info mode depending on the current display mode
 
-## Flash Folder
+## Web and Manifests
 
-`flash/` contains the browser-based flashing flow:
+`www/` contains the combined Quick Start Guide and WebUSB flashing flow.
+`manifests/` contains the JSON definitions used by both the flasher and firmware updates:
 
-- `index.html` is the WebUSB / ESP Web Tools page used for factory flashing and recovery
 - `manifest.json` points to the factory image (`aether-factory.bin`)
 - `ota-manifest.json` points to the OTA image (`aether-ota.bin`) and its MD5
 
-If you change release artifact names or URLs, update both the firmware OTA source and the manifests in `flash/`.
+If you change release artifact names or URLs, update both the firmware OTA source and the manifests in `manifests/`.
 
 ## Hardware and Enclosure
 
@@ -215,7 +218,7 @@ esphome compile aether.yaml
 - Prefer small, wiring-consistent changes over broad rewrites.
 - Preserve stable IDs, config keys, API keys, and route names unless migration is part of the task.
 - When editing firmware features that span YAML, Python, C++, and browser JS, update every touchpoint together.
-- When changing OTA behavior, keep `firmware/` and `flash/` aligned.
+- When changing OTA behavior, keep `firmware/` and `manifests/` aligned.
 
 ## Maintenance Rule
 

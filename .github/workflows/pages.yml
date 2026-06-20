@@ -29,34 +29,15 @@ jobs:
 
       - name: Build Pages artifact
         run: |
-          mkdir -p site/flash
-          cp flash/index.html site/flash/
-          cp flash/manifest.json site/flash/
-          cp flash/ota-manifest.json site/flash/
+          cp -r www/* site/
+          cp manifests/manifest.json site/manifest.json
+          cp manifests/ota-manifest.json site/ota-manifest.json
           
           echo "Downloading latest OTA binary to bypass GitHub Releases redirect..."
-          curl -sL "https://github.com/enriqueneyra/aether/releases/latest/download/aether-ota.bin" -o site/flash/aether-ota.bin
+          curl -sL "https://github.com/enriqueneyra/aether/releases/latest/download/aether-ota.bin" -o site/aether-ota.bin
           
           echo "Downloading latest factory binary for WebUSB flasher..."
-          curl -sL "https://github.com/enriqueneyra/aether/releases/latest/download/aether-factory.bin" -o site/flash/aether-factory.bin
-
-          cat <<'EOF' > site/index.html
-          <!doctype html>
-          <html lang="en">
-            <head>
-              <meta charset="utf-8" />
-              <title>Aether</title>
-              <meta http-equiv="refresh" content="0; url=/flash/" />
-              <link rel="canonical" href="https://aether.syntropylabs.io/flash/" />
-              <script>
-                window.location.replace("/flash/");
-              </script>
-            </head>
-            <body>
-              <p>Redirecting to <a href="/flash/">/flash/</a>...</p>
-            </body>
-          </html>
-          EOF
+          curl -sL "https://github.com/enriqueneyra/aether/releases/latest/download/aether-factory.bin" -o site/aether-factory.bin
 
           echo "aether.syntropylabs.io" > site/CNAME
           touch site/.nojekyll

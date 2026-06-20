@@ -57,7 +57,7 @@ jobs:
           )
           yaml_path.write_text(updated_text)
 
-          for manifest_name in ("flash/manifest.json", "flash/ota-manifest.json"):
+          for manifest_name in ("manifests/manifest.json", "manifests/ota-manifest.json"):
               manifest_path = Path(manifest_name)
               manifest = json.loads(manifest_path.read_text())
               manifest["version"] = new_version
@@ -93,7 +93,7 @@ jobs:
           from pathlib import Path
 
           ota_path = Path("release/aether-ota.bin")
-          manifest_path = Path("flash/ota-manifest.json")
+          manifest_path = Path("manifests/ota-manifest.json")
 
           manifest = json.loads(manifest_path.read_text())
           manifest["builds"][0]["ota"]["md5"] = hashlib.md5(ota_path.read_bytes()).hexdigest()
@@ -104,7 +104,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add firmware/aether.yaml flash/manifest.json flash/ota-manifest.json
+          git add firmware/aether.yaml manifests/manifest.json manifests/ota-manifest.json
           git commit -m "Release ${{ steps.version.outputs.tag }} [skip release]"
           git push
 

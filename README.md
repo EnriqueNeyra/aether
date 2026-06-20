@@ -13,7 +13,8 @@
 | `hardware/manufacturing/` | PCB manufacturing outputs, BOM, and centroid files                         |
 | `hardware/datasheets/`    | Reference datasheets used during hardware design                           |
 | `enclosure/`              | SolidWorks enclosure and assembly files                                    |
-| `flash/`                  | WebUSB flashing page and firmware manifests                                |
+| `manifests/`                  | Firmware manifests for OTA and WebUSB                      |
+| `www/`                        | The combined WebUSB flasher and Quick Start Guide site     |
 
 ## Contents
 
@@ -56,6 +57,16 @@ To build one Aether unit, the following core parts are needed:
 
 <p align="center"><img alt="A6700230" src="https://github.com/user-attachments/assets/9861c7f3-c20a-4694-845d-c945b032f5fe" width="700"></p>
 
+### Alternative Display Compatibility
+
+The Aether PCB implements the standard 24-pin FPC e-paper interface. While designed for the 3.7" GDEY037T03, it is hardware-compatible with many other common e-paper panels (e.g., those using SSD1680, UC8151D, and IL0373 driver ICs).
+
+If you choose to use an alternative display, you will need to:
+1. **Update the firmware** to instantiate the correct `GxEPD2` display driver class.
+2. **Modify the enclosure design** to physically fit the new panel dimensions.
+
+For specific supported ICs and detailed firmware instructions, see [display-compatibility.md](display-compatibility.md).
+
 ## Assembly
 
 High-level assembly flow:
@@ -97,7 +108,7 @@ _Any Aether devices purchased through [**Syntropy Labs**](https://syntropylabs.i
 #### For a new board or a device that needs recovery:
 
 1. Connect Aether to your computer over USB.
-2. Open the [Aether WebUSB flashing tool](https://aether.syntropylabs.io/flash/).
+2. Open the [Aether WebUSB flashing tool](https://aether.syntropylabs.io/).
 3. Choose **Factory flash (recommended)** for first-time setup or full recovery.
 4. Keep the page open until flashing is complete.
 5. Let the device boot.
@@ -107,7 +118,7 @@ _Any Aether devices purchased through [**Syntropy Labs**](https://syntropylabs.i
 1. Connect the device over USB and open the same flashing page.
 2. Choose **Update firmware (OTA)** if you want to preserve the current device settings.
 
-_Note: The flashing page in `flash/` is built around **ESP Web Tools / WebUSB** and is intended to work best in **Chrome or Edge**._
+_Note: The flashing page in `www/` is built around **ESP Web Tools / WebUSB** and is intended to work best in **Chrome or Edge**._
 
 ### Firmware development
 
@@ -180,7 +191,7 @@ Because Aether runs ESPHome, it features a native API over Wi-Fi. This allows fo
 
 Aether supports more than one update path:
 
-- **Local USB flashing** through the [WebUSB flashing tool](https://aether.syntropylabs.io/flash/) (source located in `flash/`)
+- **Local USB flashing** through the [WebUSB flashing tool](https://aether.syntropylabs.io/) (source located in `www/`)
 - **In-device update flow** through the local web UI
 - **Home Assistant** when the device is online
 
