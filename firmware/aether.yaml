@@ -82,6 +82,7 @@ ota:
 
 http_request:
   verify_ssl: false # required on Arduino framework for HTTPS
+  buffer_size_rx: 2048 # large enough to handle massive redirect headers if ever needed
 
 update:
   - platform: http_request
