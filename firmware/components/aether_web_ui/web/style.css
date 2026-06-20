@@ -496,9 +496,20 @@ h1 {
 @media (max-width: 600px) {
   .metrics-grid {
     grid-template-columns: 1fr 1fr;
+    gap: 12px;
   }
-  .frame { padding: 20px; }
+  .metric {
+    padding: 14px 12px;
+  }
+  .metric-main {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .metric-value {
+    font-size: 24px;
+  }
+  .frame { padding: 16px; }
   .header { flex-direction: column; align-items: flex-start; gap: 16px; }
   .fw-title-row { flex-direction: column; align-items: flex-start; gap: 12px; }
-  .shell { margin: 2vh auto; }
+  .shell { margin: 1vh auto; padding: 12px; }
 }

@@ -503,7 +503,7 @@ namespace aether
           return;
         }
 
-        if (g_boot_full_refreshes < 2)
+        if (g_boot_full_refreshes < 1)
         {
           render_boot(g_boot_frame, true);
           g_boot_full_refreshes++;

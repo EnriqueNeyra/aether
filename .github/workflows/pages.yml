@@ -1,12 +1,6 @@
 name: Deploy Pages
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - "flash/**"
-      - ".github/workflows/pages.yml"
   workflow_run:
     workflows: ["Release Firmware"]
     types:
