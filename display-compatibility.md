@@ -10,6 +10,8 @@ The Aether PCB implements the **standard 24-pin FPC (0.5mm pitch) e-paper interf
 
 Because of this standard, the custom PCB is **hardware-compatible** with a wide variety of other e-paper driver ICs. The external boost circuit on the board (MOSFET, inductor, and schottky diode) that generates the panel's internal driving voltages is universally shared across these controller families.
 
+**Note: While the hardware standard and firmware library theoretically support the ICs listed below, they have not yet been explicitly tested or confirmed to work with the Aether device.**
+
 Other common e-paper driver ICs that use this exact same 24-pin hardware footprint include:
 
 *   **Solomon Systech ICs:**
