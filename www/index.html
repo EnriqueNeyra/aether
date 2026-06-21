@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,16 +9,20 @@
   <link rel="stylesheet" href="style.css">
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
 </head>
+
 <body>
   <div class="background-glow"></div>
-  
+
   <nav class="navbar">
     <div class="nav-content">
       <div class="logo">Syntropy <span class="logo-accent">//</span> Labs</div>
       <div class="nav-links">
         <button class="nav-link tab-btn active" data-tab="guide">Quick Start</button>
-        <button class="nav-link tab-btn" data-tab="flasher">Firmware & Setup</button>
-        <a href="https://github.com/EnriqueNeyra/aether/" target="_blank" class="nav-link">Docs <i class="ph ph-arrow-up-right"></i></a>
+        <button class="nav-link tab-btn" data-tab="flasher">Firmware & Updates</button>
+        <a href="https://github.com/EnriqueNeyra/aether/" target="_blank" class="nav-link"><i
+            class="ph ph-github-logo"></i> Docs <i class="ph ph-arrow-up-right"></i></a>
+        <a href="https://syntropylabs.io" target="_blank" class="nav-link store-btn"><i class="ph ph-shopping-bag"></i>
+          Store <i class="ph ph-arrow-up-right"></i></a>
       </div>
     </div>
   </nav>
@@ -28,17 +33,22 @@
       <header class="hero">
         <div class="hero-badge">Quick Start Guide</div>
         <h1 class="hero-title">Meet Aether.</h1>
-        <p class="hero-subtitle">Your beautiful, open-source indoor air quality monitor.</p>
+        <p class="hero-subtitle">Your open-source and local-only indoor air quality monitor.</p>
+        <div class="hero-image-wrapper">
+          <img src="assets/aether-device-black.png" alt="Aether Device" class="hero-device-img">
+        </div>
       </header>
 
       <section id="setup" class="section reveal">
         <h2 class="section-title"><i class="ph ph-plug"></i> 1. Power It On</h2>
         <div class="card">
           <div class="step-content">
-            <p>Connect Aether to power using a USB-C cable. Once plugged in, the e-paper display will initialize and show the Aether logo before jumping into the main dashboard.</p>
+            <p>Connect Aether to power using a USB-C cable. Once plugged in, the e-paper display will initialize and
+              show the Aether logo before jumping into the main dashboard.</p>
             <div class="note">
               <i class="ph-fill ph-info"></i>
-              <p><strong>Note:</strong> The display may flicker black and white during boot. This is completely normal for e-paper screens as they clear residual ghosting.</p>
+              <p><strong>Note:</strong> The display may flicker black and white during boot. This is completely normal
+                for e-paper screens as they clear residual ghosting.</p>
             </div>
           </div>
         </div>
@@ -46,36 +56,25 @@
 
       <section id="wifi" class="section reveal">
         <h2 class="section-title"><i class="ph ph-wifi-high"></i> 2. Connect to Wi-Fi</h2>
-        <p class="section-desc">Connecting to Wi-Fi allows you to access the Web UI, view live charts, change settings, and receive over-the-air updates.</p>
-        
-        <div class="grid-2">
-          <div class="card interactive-card">
-            <div class="card-icon"><i class="ph ph-device-mobile"></i></div>
-            <h3>Option A: Mobile Setup</h3>
-            <ol class="step-list">
-              <li>Open the Wi-Fi settings on your phone or computer.</li>
-              <li>Look for a network starting with <strong>aether-</strong> (e.g., aether-a1b2c3).</li>
-              <li>Connect to it. A setup portal should automatically open.</li>
-              <li>Select your home Wi-Fi network and enter the password.</li>
-            </ol>
-          </div>
-          
-          <div class="card interactive-card">
-            <div class="card-icon"><i class="ph ph-browser"></i></div>
-            <h3>Option B: WebUSB Setup</h3>
-            <ol class="step-list">
-              <li>Connect Aether to your computer via USB-C.</li>
-              <li>Switch to the <strong>Firmware & Setup</strong> tab at the top of this page.</li>
-              <li>Use the WebUSB tool to securely configure Wi-Fi credentials or update firmware.</li>
-            </ol>
-          </div>
+        <p class="section-desc">Connecting to Wi-Fi allows you to access the device's local Web UI to view live metrics,
+          connect to Home Assistant,
+          and receive OTA updates.</p>
+
+        <div class="card">
+          <ol class="step-list" style="margin-top: 0;">
+            <li>Open the Wi-Fi settings on your phone or computer.</li>
+            <li>Look for a network starting with <strong>aether-</strong> (e.g., aether-a1b2c3).</li>
+            <li>Connect to it. A setup portal should automatically open.</li>
+            <li>Select your home Wi-Fi network and enter the password.</li>
+          </ol>
         </div>
       </section>
 
       <section id="display" class="section reveal">
         <h2 class="section-title"><i class="ph ph-screencast"></i> 3. The Display & Metrics</h2>
-        <p class="section-desc">Aether tracks 9 different environmental metrics. The e-paper screen updates every 500ms when data changes.</p>
-        
+        <p class="section-desc">Aether tracks 9 different environmental metrics. The e-paper screen updates every 500ms
+          when data changes.</p>
+
         <div class="metrics-grid">
           <div class="metric-item">
             <div class="metric-value">CO2</div>
@@ -112,22 +111,24 @@
 
       <section id="controls" class="section reveal">
         <h2 class="section-title"><i class="ph ph-radio-button"></i> 4. Button Controls</h2>
-        <p class="section-desc">The physical button on the back of the device controls display modes and resets.</p>
-        
+        <p class="section-desc">The physical side button on the device controls display modes and resets.</p>
+
         <div class="card">
           <ul class="action-list">
             <li>
               <div class="action-badge">Short Press</div>
               <div class="action-details">
-                <h4>Toggle Display Mode</h4>
-                <p>Switches between the main dashboard and the Device Information / QR Code screen.</p>
+                <h4>Device Information</h4>
+                <p>Switches to the Info screen, which displays the device's hostname and IP address, and QR codes for
+                  the instruction manual and local web dashboard.</p>
               </div>
             </li>
             <li>
               <div class="action-badge warning">Long Press (3s+)</div>
               <div class="action-details">
-                <h4>Factory Reset / Reboot</h4>
-                <p>Hold for 3 seconds to initiate a factory reset (clears Wi-Fi credentials). If on the Info screen and offline, it will simply reboot the device.</p>
+                <h4>Factory Reset</h4>
+                <p>Hold for 3 seconds to initiate a factory reset, then hold again for 3s to
+                  confirm.</p>
               </div>
             </li>
           </ul>
@@ -138,13 +139,15 @@
         <h2 class="section-title"><i class="ph ph-laptop"></i> 5. The Web UI</h2>
         <div class="card split-card">
           <div class="split-content">
-            <p>Once connected to Wi-Fi, Aether hosts a beautiful, responsive web interface on your local network. You can use it to:</p>
+            <p>Once connected to Wi-Fi, Aether hosts a responsive web interface on your local network. You
+              can use it to:</p>
             <ul class="feature-list">
               <li><i class="ph-fill ph-check-circle"></i> View real-time sensor metrics</li>
               <li><i class="ph-fill ph-check-circle"></i> Change temperature units (°F / °C)</li>
               <li><i class="ph-fill ph-check-circle"></i> Check firmware versions and perform OTA updates</li>
             </ul>
-            <p class="mt-4">Access it by navigating to your device's IP address or by trying <a href="http://aether.local" class="text-link">http://aether.local</a> in your browser.</p>
+            <p class="mt-4">Access it by navigating to your device's IP hostname (e.g., aether-a1b2c3.local) address in
+              your browser. These addresses can be found in the 'Device Information' screen.</p>
           </div>
           <div class="split-visual">
             <div class="mock-ui">
@@ -160,11 +163,28 @@
         </div>
       </section>
 
+      <section id="home-assistant" class="section reveal">
+        <h2 class="section-title"><i class="ph ph-house-line"></i> 6. Home Assistant</h2>
+        <div class="card">
+          <p>Because Aether runs ESPHome, it features a native API over Wi-Fi. Aether will automatically appear in your
+            Home Assistant integrations dashboard once connected to your network. It securely exposes all 9 sensor
+            metrics (CO2, Temp, PM2.5, PM4, PM10, Humidity, VOC, NOx) right out of the box.</p>
+          <div class="mt-4" style="display: flex; justify-content: center; align-items: center; padding: 1rem 0;">
+            <a href="https://my.home-assistant.io/redirect/integrations/" target="_blank" rel="noreferrer noopener"><img
+                src="https://my.home-assistant.io/badges/integrations.svg"
+                alt="Open your Home Assistant instance and show your integrations." /></a>
+          </div>
+        </div>
+      </section>
+
       <section id="troubleshooting" class="section reveal">
         <h2 class="section-title"><i class="ph ph-wrench"></i> Need Help?</h2>
         <div class="card">
-          <p>If you encounter any issues, you can reset the device by holding the back button for 3 seconds.</p>
-          <p class="mt-4">For full documentation, advanced configuration, or to report an issue, please visit the <a href="https://github.com/enriqueneyra/aether" class="text-link" target="_blank">Aether GitHub Repository</a>.</p>
+          <p>If you encounter any persistent issues, you can perform a full recovery using the <strong>Factory
+              flash</strong> option in the Firmware &amp; Updates tab above.</p>
+          <p class="mt-4">For full documentation, advanced configuration, or to report an issue, please visit the <a
+              href="https://github.com/enriqueneyra/aether" class="text-link" target="_blank">Aether GitHub
+              Repository</a>.</p>
         </div>
       </section>
     </div>
@@ -174,7 +194,8 @@
       <div id="mobile-warning" class="card warning-card" style="display: none; margin-bottom: 24px;">
         <i class="ph ph-warning-circle" style="font-size: 2rem; color: #ef4444; margin-bottom: 12px;"></i>
         <h3>Desktop Browser Required</h3>
-        <p>WebUSB flashing is not supported on mobile devices. To configure Wi-Fi via USB or update firmware, please visit this page on a desktop Chrome or Edge browser.</p>
+        <p>WebUSB flashing is not supported on mobile devices. To configure Wi-Fi via USB or update firmware, please
+          visit this page on a desktop Chrome or Edge browser.</p>
       </div>
 
       <div class="flasher-shell">
@@ -182,7 +203,7 @@
           <div class="flasher-title-block">
             <div class="flasher-pill"></div>
             <div>
-              <h2>USB Flashing & Setup</h2>
+              <h2>USB Flashing & Updates</h2>
               <p class="subtitle">Setup, recovery, and updates over USB</p>
             </div>
           </div>
@@ -194,7 +215,8 @@
 
         <div class="hero-flasher">
           <p class="hero-copy">
-            Use this page to flash a new Aether device, recover an existing unit, or install the latest firmware over USB. For routine updates, use the device's local web UI when it is already on your network.
+            Use this page to flash a new Aether device, recover an existing unit, or install the latest firmware over
+            USB. For routine updates, use the device's local web UI when it is already on your network.
           </p>
           <div class="chip-row">
             <div class="chip">1. Connect Aether over USB</div>
@@ -207,7 +229,7 @@
           <div class="action-card action-card--standard">
             <div class="action-header">
               <div>
-                <div class="action-title">Factory flash (recommended)</div>
+                <div class="action-title">Factory Flash</div>
                 <div class="action-desc">
                   Installs the latest Aether firmware, bootloader, and partition layout.
                   Use this for fresh boards or when recovering a device.
@@ -231,7 +253,7 @@
           <div class="action-card action-card--feature">
             <div class="action-header">
               <div>
-                <div class="action-title">Update firmware (OTA)</div>
+                <div class="action-title">Update Firmware (OTA)</div>
                 <div class="action-desc">
                   Installs the latest Aether firmware while keeping your Wi-Fi and device settings.
                   Use this if your Aether is already set up and you just want the newest version.
@@ -268,4 +290,5 @@
   <!-- ESP Web Tools -->
   <script type="module" src="https://unpkg.com/esp-web-tools@9/dist/web/install-button.js?module"></script>
 </body>
+
 </html>

@@ -78,7 +78,7 @@ namespace aether
     static constexpr unsigned long BOOT_FRAME_MS = 500;
     static constexpr uint8_t BOOT_SLASH_FRAME_COUNT = 4;
     static constexpr unsigned long BOOT_TIMEOUT_MS = 75000;
-    static constexpr const char *INFO_INSTRUCTIONS_URL = "https://github.com/EnriqueNeyra/aether";
+    static constexpr const char *INFO_INSTRUCTIONS_URL = "https://aether.syntropylabs.io/";
 
     inline void draw_info_qr_card(int x, int y, const char *target);
     inline void draw_info_qr_card(int x, int y, const char *target,
