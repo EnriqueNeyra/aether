@@ -1,6 +1,6 @@
 {
   "name": "syntropylabs.aether",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "builds": [
     {
       "chipFamily": "ESP32-C3",
