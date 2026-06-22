@@ -475,9 +475,8 @@ button.nav-link.active {
 /* Mock UI Element */
 .mock-ui {
   width: 100%;
-  max-width: 300px;
-  height: 240px;
-  background: rgba(13, 15, 20, 0.8);
+  max-width: 320px;
+  background: #12141c;
   border-radius: var(--radius-md);
   border: 1px solid rgba(255, 255, 255, 0.1);
   padding: 16px;
@@ -487,33 +486,138 @@ button.nav-link.active {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
-.mock-header {
-  height: 24px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 6px;
-  width: 40%;
+.mock-ui-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.mock-body {
+.mock-ui-title-block {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mock-ui-pill {
+  width: 4px;
+  height: 16px;
+  border-radius: 4px;
+  background: var(--accent);
+}
+
+.mock-ui-title-text {
+  font-weight: 700;
+  font-size: 14px;
+  color: #fff;
+}
+
+.mock-ui-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  color: #4ade80;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.mock-ui-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #4ade80;
+}
+
+.mock-ui-tabs {
+  display: flex;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 4px;
+  border-radius: 8px;
+}
+
+.mock-ui-tab {
+  flex: 1;
+  text-align: center;
+  font-size: 11px;
+  padding: 6px;
+  border-radius: 6px;
+  color: var(--text-muted);
+}
+
+.mock-ui-tab.active {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-weight: 500;
+}
+
+.mock-ui-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.mock-ui-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.mock-ui-card-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.mock-ui-unit-toggle {
+  display: flex;
+  gap: 2px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  padding: 2px;
+}
+
+.mock-ui-unit-toggle span {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  color: var(--text-muted);
+}
+
+.mock-ui-unit-toggle span.active {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+.mock-ui-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  flex: 1;
+  gap: 8px;
 }
 
-.mock-stat {
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 8px;
-  animation: pulse 4s infinite alternate;
+.mock-ui-stat {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  padding: 10px;
 }
 
-.mock-stat:nth-child(2) { animation-delay: 1s; }
-.mock-stat:nth-child(3) { animation-delay: 2s; }
-.mock-stat:nth-child(4) { animation-delay: 3s; }
+.mock-ui-stat .val {
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+  margin-bottom: 4px;
+}
 
-@keyframes pulse {
-  0% { background: rgba(255, 255, 255, 0.02); }
-  100% { background: rgba(255, 255, 255, 0.08); }
+.mock-ui-stat .lbl {
+  font-size: 10px;
+  color: var(--text-muted);
 }
 
 /* Footer */
