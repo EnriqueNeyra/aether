@@ -81,6 +81,9 @@ namespace aether
     /// Feeds ESPHome's WiFi connection state to HomeSpan as arduino events.
     void bridge_wifi_state_();
 
+    /// Registers the _hap._tcp mDNS service the Home app needs to find us.
+    void publish_hap_mdns_();
+
     /// Undoes the WiFi bring-up HomeSpan performs before ESPHome's setup(), so
     /// ESPHome can initialise the stack itself. Must run before the WiFi
     /// component's setup(); see get_setup_priority().

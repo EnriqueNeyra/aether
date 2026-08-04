@@ -19,6 +19,7 @@
 #include <esp_event.h>
 #include <esp_netif.h>
 #include <esp_wifi.h>
+#include <mdns.h>
 
 namespace aether
 {
@@ -339,6 +340,32 @@ namespace aether
     }
   }
 
+  void AetherHomeKit::publish_hap_mdns_()
+  {
+    // Registers _hap._tcp ourselves, immediately before handing the connect
+    // event to HomeSpan.
+    //
+    // HomeSpan does this itself in configureNetwork() via arduino's
+    // MDNS.addService(), but that silently no-ops here and the accessory never
+    // becomes discoverable - the Home app finds the paired accessory in its own
+    // records but cannot resolve an address for it, and shows "not responding"
+    // while the HAP server is in fact listening happily on its port.
+    //
+    // Registering first means HomeSpan's own mdns_service_txt_item_set() calls,
+    // which address the service by type, land on this instance and fill in the
+    // HAP TXT records (id, c#, s#, sf, ff, md, pv, ci, sh) it needs.
+    esp_err_t err = mdns_service_add(nullptr, "_hap", "_tcp", port_, nullptr, 0);
+    if (err == ESP_OK)
+    {
+      ESP_LOGI(TAG, "Advertising _hap._tcp on port %u", port_);
+    }
+    else
+    {
+      // ESP_ERR_INVALID_ARG here means it is already registered, which is fine.
+      ESP_LOGW(TAG, "mdns_service_add(_hap._tcp:%u): %s", port_, esp_err_to_name(err));
+    }
+  }
+
   void AetherHomeKit::bridge_wifi_state_()
   {
     // ESPHome owns esp_wifi now, so arduino's WiFi event translation layer is
@@ -358,6 +385,9 @@ namespace aether
     if (connected == wifi_connected_)
       return;
     wifi_connected_ = connected;
+
+    if (connected)
+      publish_hap_mdns_();
 
     arduino_event_t event{};
     event.event_id = connected ? ARDUINO_EVENT_ETH_GOT_IP : ARDUINO_EVENT_ETH_DISCONNECTED;
