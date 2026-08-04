@@ -8,6 +8,10 @@
 #include "esphome/components/sensor/sensor.h"
 #include "esphome/components/update/update_entity.h"
 
+#ifdef USE_AETHER_HOMEKIT
+#include "esphome/components/aether_homekit/aether_homekit.h"
+#endif
+
 #include <string>
 #include <cmath>
 #include <functional>
@@ -39,6 +43,10 @@ namespace aether
     void set_pm10(Sensor *s) { pm10_ = s; }
     void set_voc(Sensor *s) { voc_ = s; }
     void set_nox(Sensor *s) { nox_ = s; }
+
+#ifdef USE_AETHER_HOMEKIT
+    void set_homekit(AetherHomeKit *hk) { homekit_ = hk; }
+#endif
 
     void set_fw_update(UpdateEntity *u) { fw_update_ = u; }
     void set_temp_unit_switch(Select *s) { temp_unit_select_ = s; }
@@ -121,6 +129,9 @@ namespace aether
     Sensor *nox_{nullptr};
 
     UpdateEntity *fw_update_{nullptr};
+#ifdef USE_AETHER_HOMEKIT
+    AetherHomeKit *homekit_{nullptr};
+#endif
     Select *temp_unit_select_{nullptr};
     std::function<void()> on_check_update_{nullptr};
 
@@ -171,7 +182,7 @@ namespace aether
 
     void handle_state_(AsyncWebServerRequest *request)
     {
-      char json[800];
+      char json[1024];
       const char *ver =
 #ifdef ESPHOME_PROJECT_VERSION
           ESPHOME_PROJECT_VERSION;
@@ -237,13 +248,34 @@ namespace aether
                "\"has_update\":%s,"
                "\"latest_version\":\"%s\","
                "\"update_state\":\"%s\","
-               "\"update_progress\":%.2f}",
+               "\"update_progress\":%.2f",
                ver,
                use_f ? "F" : "C",
                has_update ? "true" : "false",
                escaped_version,
                update_state_str,
                update_progress);
+      advance(n);
+
+#ifdef USE_AETHER_HOMEKIT
+      if (homekit_ != nullptr && homekit_->is_ready())
+      {
+        n = snprintf(p, rem,
+                     ",\"homekit\":{\"enabled\":true,\"paired\":%s,"
+                     "\"code\":\"%.11s\",\"payload\":\"%.23s\"}",
+                     homekit_->is_paired() ? "true" : "false",
+                     homekit_->pairing_code_display(),
+                     homekit_->qr_payload());
+        advance(n);
+      }
+      else
+      {
+        n = snprintf(p, rem, ",\"homekit\":{\"enabled\":false}");
+        advance(n);
+      }
+#endif
+
+      n = snprintf(p, rem, "}");
       advance(n);
 
       if (rem <= 0)

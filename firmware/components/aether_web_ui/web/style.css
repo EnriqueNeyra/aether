@@ -1,19 +1,30 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+/* The device serves this page on a LAN that often has no route to the
+   internet, so no webfont is loaded. -apple-system resolves to SF Pro on
+   Apple platforms, which is what the Liquid Glass styling below is drawn for. */
 
+/* Dark-only on purpose: the panel copy uses hardcoded light text throughout,
+   and the device's own e-paper/product identity is dark. */
 :root {
-  --bg-color: #0d0f14;
-  --bg-gradient: radial-gradient(circle at top, #1a1e2d 0%, #0d0f14 60%);
-  --card-bg: rgba(22, 25, 35, 0.6);
-  --card-border: rgba(255, 255, 255, 0.08);
+  color-scheme: dark;
+
+  --bg-color: #05070c;
+  --card-bg: rgba(255, 255, 255, 0.06);
+  --card-bg-strong: rgba(255, 255, 255, 0.10);
+  --card-border: rgba(255, 255, 255, 0.14);
+  --card-sheen: rgba(255, 255, 255, 0.28);
   --accent: #6b8afc;
   --accent-glow: rgba(107, 138, 252, 0.5);
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --radius-lg: 20px;
-  --radius-md: 12px;
-  --shadow-soft: 0 20px 40px rgba(0, 0, 0, 0.5);
-  --transition-fast: 0.2s ease;
-  --transition-slow: 0.4s ease;
+  --text-main: #f5f7fa;
+  --text-muted: rgba(235, 240, 250, 0.62);
+  --radius-lg: 22px;
+  --radius-md: 14px;
+  --shadow-soft: 0 24px 60px rgba(0, 0, 0, 0.55);
+
+  /* Liquid Glass: heavy blur plus saturation boost, so whatever sits behind
+     the panel bleeds through as colour rather than grey. */
+  --glass-blur: blur(30px) saturate(180%);
+  --transition-fast: 0.2s cubic-bezier(0.32, 0.72, 0, 1);
+  --transition-slow: 0.45s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 * {
@@ -29,29 +40,34 @@ body {
   align-items: flex-start;
   justify-content: center;
   background: var(--bg-color);
-  background-image: var(--bg-gradient);
   color: var(--text-main);
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display',
+               system-ui, 'Segoe UI', Roboto, sans-serif;
   overflow-x: hidden;
 }
 
-/* Background animated glow */
+/* Colour field the glass panels refract. Three offset radial washes read as a
+   soft mesh gradient without needing an image. */
 body::before {
   content: "";
-  position: absolute;
-  top: -20vh;
-  left: 20vw;
-  width: 60vw;
-  height: 60vw;
-  background: radial-gradient(circle, rgba(107, 138, 252, 0.15) 0%, transparent 60%);
-  filter: blur(80px);
+  position: fixed;
+  inset: -25vh -25vw;
+  background:
+    radial-gradient(45vw 45vw at 22% 12%, rgba(107, 138, 252, 0.55) 0%, transparent 62%),
+    radial-gradient(42vw 42vw at 82% 26%, rgba(56, 208, 214, 0.38) 0%, transparent 64%),
+    radial-gradient(52vw 52vw at 58% 92%, rgba(168, 106, 255, 0.42) 0%, transparent 66%);
+  filter: blur(60px);
   z-index: -1;
-  animation: float 10s ease-in-out infinite alternate;
+  animation: float 18s ease-in-out infinite alternate;
 }
 
 @keyframes float {
-  0% { transform: translateY(0) scale(1); }
-  100% { transform: translateY(20px) scale(1.05); }
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  100% { transform: translate3d(0, 24px, 0) scale(1.06); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::before { animation: none; }
 }
 
 .shell {
@@ -485,6 +501,32 @@ h1 {
   margin-top: 8px;
 }
 
+.hk-code-wrap {
+  background: rgba(0,0,0,0.2);
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hk-code-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+}
+
+.hk-code {
+  font-size: 30px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+  user-select: all;
+}
+
 .footer {
   margin-top: 20px;
   text-align: right;
@@ -511,5 +553,165 @@ h1 {
   .frame { padding: 16px; }
   .header { flex-direction: column; align-items: flex-start; gap: 16px; }
   .fw-title-row { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .hk-code { font-size: 24px; }
   .shell { margin: 1vh auto; padding: 12px; }
+}
+/* ───────────────────────────────────────────────────────────────────────────
+   Liquid Glass surfaces
+   Layered on top of the base rules above so every panel shares one recipe:
+   a translucent fill, a saturating backdrop blur so the colour field behind
+   shows through, a hairline edge, and an inset specular highlight along the
+   top edge that reads as light catching a bevel.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+.frame,
+.card,
+.firmware-card,
+.metric,
+.tab-buttons,
+.hk-code-wrap,
+.fw-meta {
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+}
+
+.frame {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 30px;
+  box-shadow:
+    var(--shadow-soft),
+    inset 0 1px 0 var(--card-sheen),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Specular sweep across the top of the main panel. */
+.frame::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 45%;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.10), transparent);
+  pointer-events: none;
+  border-radius: 30px 30px 0 0;
+}
+
+.card,
+.firmware-card,
+.metric,
+.hk-code-wrap,
+.fw-meta {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-lg);
+  box-shadow: inset 0 1px 0 var(--card-sheen);
+}
+
+.metric {
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast),
+              background var(--transition-fast);
+}
+
+.metric:hover {
+  transform: translateY(-3px);
+  background: var(--card-bg-strong);
+  box-shadow:
+    inset 0 1px 0 var(--card-sheen),
+    0 14px 30px rgba(0, 0, 0, 0.28);
+}
+
+.metric-value {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* Segmented control, styled like the glass pill in iOS. */
+.tab-buttons {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 999px;
+  padding: 4px;
+  gap: 4px;
+  box-shadow: inset 0 1px 0 var(--card-sheen);
+}
+
+.tab-btn {
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  transition: background var(--transition-fast), color var(--transition-fast),
+              box-shadow var(--transition-fast);
+}
+
+.tab-btn--active {
+  background: var(--card-bg-strong);
+  border-color: var(--card-border);
+  box-shadow:
+    inset 0 1px 0 var(--card-sheen),
+    0 4px 12px rgba(0, 0, 0, 0.22);
+}
+
+.pill,
+.status-chip,
+.fw-pill,
+.fw-badge,
+.chip,
+.unit-toggle {
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(20px) saturate(160%);
+  border-radius: 999px;
+  box-shadow: inset 0 1px 0 var(--card-sheen);
+}
+
+.unit-btn,
+.fw-btn {
+  border-radius: 999px;
+  transition: transform var(--transition-fast), background var(--transition-fast),
+              box-shadow var(--transition-fast);
+}
+
+.fw-btn:active:enabled,
+.unit-btn:active {
+  transform: scale(0.96);
+}
+
+/* Primary action: a tinted glass capsule rather than a flat fill. */
+.fw-btn {
+  background: linear-gradient(180deg,
+              rgba(107, 138, 252, 0.95), rgba(84, 112, 226, 0.95));
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 8px 22px rgba(107, 138, 252, 0.35);
+}
+
+.fw-btn:disabled {
+  background: var(--card-bg);
+  border-color: var(--card-border);
+  box-shadow: inset 0 1px 0 var(--card-sheen);
+  color: var(--text-muted);
+}
+
+.fw-btn--secondary {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  box-shadow: inset 0 1px 0 var(--card-sheen);
+  color: var(--text-main);
+}
+
+.fw-btn--secondary:hover:enabled {
+  background: var(--card-bg-strong);
+}
+
+.hk-code {
+  letter-spacing: 0.08em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+/* Where backdrop blur is unavailable, fall back to an opaque fill so text never
+   lands directly on the raw colour field. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .frame, .card, .firmware-card, .metric, .tab-buttons, .hk-code-wrap, .fw-meta {
+    background: rgba(18, 22, 32, 0.90);
+  }
 }
