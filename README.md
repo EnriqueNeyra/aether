@@ -157,9 +157,9 @@ Once connected to the access point, you will automatically be redirected to the 
 
 The side / boot button supports multiple actions:
 
-- **Short press:** toggles between the normal dashboard and the info screen
-- **Long press from the normal screen:** enters factory reset confirmation
-- **Long press again on the reset screen:** confirms the factory reset flow
+- **Short press (tap, under 1 second):** toggles between the normal dashboard and the info screen
+- **Long press (hold ~3 seconds) from the normal screen:** enters factory reset confirmation
+- **Long press (hold ~3 seconds) again on the reset screen:** confirms the factory reset flow
 
 ### Local web UI
 
