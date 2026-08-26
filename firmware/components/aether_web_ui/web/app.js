@@ -2,6 +2,7 @@
     const tabButtons = document.querySelectorAll('.tab-btn');
     const tabPanels = {
       env: document.getElementById('tab-env'),
+      hk: document.getElementById('tab-hk'),
       fw: document.getElementById('tab-fw')
     };
 
@@ -29,6 +30,10 @@
     const fwStatusTextEl = document.getElementById('fw-status-text');
     const fwUpdateBtn = document.getElementById('fw-update-btn');
     const fwCheckBtn = document.getElementById('fw-check-btn');
+
+    const hkBadgeEl = document.getElementById('hk-badge');
+    const hkCodeEl = document.getElementById('hk-code');
+    const hkStatusTextEl = document.getElementById('hk-status-text');
 
     const unitButtons = document.querySelectorAll('.unit-btn');
 
@@ -161,6 +166,33 @@
       renderFirmwareStatus();
     }
 
+    function renderHomeKitFromState(data) {
+      const hk = data.homekit;
+
+      if (!hk || !hk.enabled) {
+        hkBadgeEl.textContent = 'Unavailable';
+        hkBadgeEl.className = 'fw-badge fw-badge--unknown';
+        hkCodeEl.textContent = '———';
+        hkStatusTextEl.textContent =
+          'HomeKit is still starting up, or this firmware was built without it.';
+        return;
+      }
+
+      hkCodeEl.textContent = hk.code || '———';
+
+      if (hk.paired) {
+        hkBadgeEl.textContent = 'Paired';
+        hkBadgeEl.className = 'fw-badge fw-badge--ok';
+        hkStatusTextEl.textContent =
+          'This Aether is paired with Apple Home. Readings appear in the Home app and in Home widgets on iOS and macOS.';
+      } else {
+        hkBadgeEl.textContent = 'Not paired';
+        hkBadgeEl.className = 'fw-badge fw-badge--warn';
+        hkStatusTextEl.textContent =
+          'Waiting to be added in the Home app. Aether must stay on this Wi-Fi network while pairing.';
+      }
+    }
+
     fwUpdateBtn.addEventListener('click', async () => {
       if (fwUpdateBtn.disabled) return;
       fwUpdateBtn.disabled = true;
@@ -208,6 +240,7 @@
         if (!res.ok) throw new Error('bad status');
         const json = await res.json();
         renderMetrics(json);
+        renderHomeKitFromState(json);
         renderFirmwareFromState(json);
         statusText.textContent = 'Live';
       } catch (e) {

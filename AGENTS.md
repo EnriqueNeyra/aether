@@ -10,11 +10,16 @@ README.md                                  # User-facing project overview
 enclosure/                                 # SolidWorks enclosure + assembly files
 firmware/
 ├── aether.yaml                            # Main ESPHome config
+├── partitions_aether.csv                  # Custom 4 MB partition table (larger OTA slots)
 ├── components/
 │   ├── aether_epaper/
 │   │   ├── aether_epaper.h                # Display driver, render loop, mode state
 │   │   ├── aether_epaper_layout.h         # Shared layout + drawing primitives
 │   │   └── fonts/                         # Adafruit GFX font headers + TTF sources
+│   ├── aether_homekit/
+│   │   ├── __init__.py                    # ESPHome codegen + HomeSpan lib pin
+│   │   ├── aether_homekit.h               # HomeSpan-free public interface (pimpl)
+│   │   └── aether_homekit.cpp             # The only TU that includes HomeSpan.h
 │   └── aether_web_ui/
 │       ├── __init__.py                    # ESPHome codegen + HTML inlining
 │       ├── aether_web_ui.h                # AsyncWebHandler + JSON/API endpoints
@@ -55,10 +60,12 @@ hardware/
 
 - SEN66 sensor entities
 - the custom `aether_web_ui` external component
+- the custom `aether_homekit` external component
 - the e-paper render loop
-- Wi-Fi / captive portal / improv setup
+- Wi-Fi / captive portal / `improv_serial` (USB) setup - note BLE `esp32_improv` is deliberately absent, see the flash budget below
 - ESPHome OTA + HTTP OTA update support
 - the persisted temperature unit preference
+- a custom partition table (`partitions_aether.csv`)
 
 ### Sensor Update and Render Flow
 
@@ -89,7 +96,82 @@ When adding or renaming a metric, keep YAML IDs, `aether_web_ui` config keys, Py
 - `MODE_INFO` - device information / QR screen
 - `MODE_RESET` - factory reset confirmation
 
+When `USE_AETHER_HOMEKIT` is defined there is a fifth mode, `MODE_HOMEKIT`, showing the HomeKit setup QR and pairing code. Short press cycles `NORMAL -> INFO -> HOMEKIT -> NORMAL`; `MODE_INFO` and `MODE_HOMEKIT` both ignore long presses so the reset flow can't be entered from them.
+
 The shared layout math lives in `aether_epaper_layout.h`.
+
+`aether_epaper.h` must never include the HomeKit component header. It receives pairing state as plain strings/bools via `set_homekit_state()`, called from the YAML render interval. See the HomeKit section below for why.
+
+## HomeKit Path
+
+`aether_homekit` embeds [HomeSpan](https://github.com/HomeSpan/HomeSpan) (pinned to 2.1.8) so the device speaks HAP natively - no bridge and no Home Assistant.
+
+### Build plumbing (fragile - read before changing)
+
+Two non-obvious things are required to make HomeSpan build inside ESPHome. Both live in `aether_homekit/__init__.py`.
+
+**1. libsodium.** HomeSpan's `HAP.cpp` needs `sodium.h` for Ed25519/Curve25519/ChaCha20-Poly1305. ESP-IDF 5.5 dropped libsodium as a built-in component, so it is pulled from the Espressif registry via `add_idf_component(name="espressif/libsodium", ref="^1.0.20")`.
+
+**2. arduino library include paths.** ESPHome builds arduino-esp32 as an IDF component, so the bundled arduino libraries that `HomeSpan.h` reaches (`WiFi.h`, `ETH.h`, `ArduinoOTA.h`, `ESPmDNS.h`, ...) get promoted to PlatformIO *project* libraries. PlatformIO then compiles each one without its siblings' include paths, producing a cascade of failures - `WiFi` cannot find `Network.h`, `Ethernet` cannot find `SPI.h`, and so on. `_ARDUINO_LIB_INCLUDES` puts those paths back with explicit `-I` flags. Without HomeSpan none of these libraries appear in the dependency graph at all, which is why the stock build never needed this.
+
+### The pimpl rule
+
+`aether_homekit.h` is kept completely free of HomeSpan types (they live in `struct Impl` in the `.cpp`), and `aether_homekit.cpp` is the only file allowed to `#include <HomeSpan.h>`. ESPHome pulls every component header into `esphome.h` and therefore into every translation unit; keeping HomeSpan's heavy include tree and its `LOG0`/`VERSION`/`REQUIRED` macros out of that path keeps compiles fast and avoids macro collisions. `aether_epaper.h` must likewise never include the HomeKit header - it takes pairing state as plain strings via `set_homekit_state()`.
+
+### Coexistence with ESPHome
+
+HomeSpan overrides arduino-esp32's weak `init()` hook, which runs *before* ESPHome's `setup()`. `Span::init()` calls `WiFi.mode(WIFI_STA)`, bringing up the default event loop, both default WiFi netifs and `esp_wifi`. ESPHome's `wifi_pre_setup_()` then gets `ESP_ERR_INVALID_STATE` from `esp_event_loop_create_default()` and **returns early**, so it never registers its event handlers, never creates its netifs and never calls `esp_wifi_init()`. The symptom is a device with no setup AP and no STA connection at all.
+
+That ordering cannot be changed, so `reclaim_wifi_stack_()` undoes arduino's half of it (wifi → netifs → event loop, in that order) and hands ESPHome a clean stack. It must run before the WiFi component, which is why `get_setup_priority()` returns `WIFI + 1` rather than `AFTER_WIFI`.
+
+A consequence: arduino's WiFi event translation layer is never registered, so HomeSpan would never see the `GOT_IP` that triggers `configureNetwork()` (mDNS advertising + HAP server). `bridge_wifi_state_()` posts ESPHome's connection state into arduino's event queue instead. It posts the **ETH** events, not the WiFi ones — they drive the identical path in `Span::networkCallback()` but read `ETH.localIP()` rather than `WiFi.localIP()`, whose netif pointer dangles after the teardown.
+
+Beyond that, ESPHome owns WiFi, mDNS, the serial port, and port 80. The component defers to it:
+
+- `setPortNum(1201)` - port 80 belongs to `web_server`
+- `setSerialInputDisable(true)` + `setLogLevel(-1)` - the logger owns UART0
+- `setWifiBegin(no-op)` - HomeSpan must never call `WiFi.begin()`; it still learns it is online from the arduino `GOT_IP` event and starts its HAP server from there
+- `setHostNameSuffix("")` with `App.get_name()` - one mDNS identity for both stacks
+- `autoPoll()` on its own task - pairing runs SRP-3072 and would otherwise starve the render loop and trip the watchdog
+- writes from ESPHome's `loop()` are made under `homeSpanPAUSE`
+
+### Reflashing during development
+
+`firmware.factory.bin` written at `0x0` spans the NVS region, so it **erases stored Wi-Fi credentials and HomeKit pairings** every time. Once a device already has the current partition table, flash the app only and leave NVS alone:
+
+```bash
+# preserves Wi-Fi credentials and HomeKit pairing
+esptool --chip esp32c3 --port <port> write-flash 0x10000 firmware.bin
+```
+
+Use the full factory image only for a first flash, a partition table change, or a deliberate wipe.
+
+### Bridge topology (do not collapse back into one accessory)
+
+The component publishes `Category::Bridges` with five accessories: the bridge itself, then one accessory each for temperature, humidity, CO2 and air quality. HomeSpan infers bridge mode from accessory 1 containing nothing but `AccessoryInformation`, so that accessory must stay empty of sensor services.
+
+This was originally one accessory carrying four sensor services, which is what HAP nominally allows. The Home app collapses that into a single tile showing only the highest-priority state — the red CO2 alert — and hides every numeric reading. Splitting into bridged accessories is what makes each reading show as its own tile and become selectable in the Home widget.
+
+Every bridged accessory needs its own `AccessoryInformation` service, defined *first* on that accessory (`add_accessory_info_()`), or HAP validation fails.
+
+### Sensor mapping
+
+| Metric | HAP characteristic |
+| ------ | ------------------ |
+| Temperature | `CurrentTemperature` (range widened to -40..100) |
+| Humidity | `CurrentRelativeHumidity` |
+| CO2 | `CarbonDioxideLevel` + `CarbonDioxideDetected` |
+| PM2.5 | `PM25Density` |
+| PM10 | `PM10Density` |
+| VOC Index | `VOCDensity` (unit mismatch: index is unitless 1-500) |
+| NOx Index | `NitrogenDioxideDensity` (same unit mismatch) |
+| PM1.0, PM4.0 | **none - HAP defines no characteristic**; display/web/API only |
+
+`AirQuality` (1-5) is derived on-device from the worst of PM2.5, VOC Index, and CO2.
+
+### Pairing code
+
+`setPairingCode()` regenerates SRP verification data every call, which costs seconds. The component hashes the configured code into ESPHome preferences and only re-applies it when it actually changes. Disallowed codes are rejected at config-validation time rather than at runtime, where HomeSpan would halt the program.
 
 ### Temperature Unit Preference
 
@@ -107,7 +189,7 @@ Internally, temperatures stay in Celsius. The display converts at render time, a
 `aether_web_ui` registers an `AsyncWebHandler` on the ESPHome web server and serves:
 
 - `GET /` or `/index.html` - the inlined device dashboard
-- `GET /api/state` - JSON state for metrics, firmware version, temp unit, and update status
+- `GET /api/state` - JSON state for metrics, firmware version, temp unit, update status, and (when built with HomeKit) a `homekit` object of `{enabled, paired, code, payload}`
 - `POST /api/perform_update` - starts the HTTP update flow
 - `POST /api/temp_unit?unit=C|F` - changes the temperature unit select
 
@@ -124,6 +206,26 @@ The browser app in `firmware/components/aether_web_ui/web/` polls `/api/state` e
 Always edit the `web/` source files, never the generated header.
 
 ### OTA / Update Path
+
+### Partition table
+
+`firmware/partitions_aether.csv` replaces ESPHome's stock 4 MB Arduino layout. The stock layout gives each OTA slot `0x1C0000` and leaves `0x60000` (384 KB) of flash unallocated; the custom table splits that dead space across `app0`/`app1`, taking each to `0x1F0000`. Without it the HomeKit build overflows the app partition.
+
+### Flash budget (this is tight - measure before adding anything)
+
+Measured with esphome 2026.2.4 on ESP32-C3:
+
+| Build | Flash | App slot | Notes |
+| ----- | ----- | -------- | ----- |
+| Stock 1.0.12 | 1,758,516 | 1,835,008 (95.8%) | almost full already |
+| + HomeKit, bigger partitions | 2,217,340 | 2,031,616 (109.1%) | **overflows** |
+| + HomeKit, no `esp32_improv` | 1,785,294 | 2,031,616 (87.9%) | ships |
+
+HomeKit costs ~448 KB (HomeSpan + libsodium + the promoted arduino WiFi/Ethernet/OTA/mDNS libraries). Paying for it meant dropping `esp32_improv`, whose Bluedroid BT stack was ~432 KB. Onboarding is unaffected in practice: the WebUSB flashing page provisions over USB via `improv_serial`, and the captive portal AP still works. **Do not re-add `esp32_improv` without removing something else of similar size.**
+
+**A partition table change cannot be delivered over OTA.** Devices on 1.0.12 or earlier must be re-flashed once over USB with the factory image. Every release after that OTAs normally again. If you ever change partition sizes again, the same one-time USB re-flash applies.
+
+### Update mechanisms
 
 The firmware exposes two update mechanisms:
 
@@ -210,7 +312,7 @@ esphome compile aether.yaml
 ### Web UI
 
 - Device UI sources live in `firmware/components/aether_web_ui/web/`.
-- The UI is a small single-page app with two tabs: Environment and Firmware & Updates.
+- The UI is a small single-page app with three tabs: Environment, HomeKit, and Firmware & Updates.
 - The frontend expects the `/api/state` schema to stay stable unless the user explicitly wants an API change.
 
 ## Safe Change Rules
