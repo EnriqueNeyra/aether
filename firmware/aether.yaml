@@ -38,6 +38,9 @@ esphome:
                   - logger.log: "No WiFi configured. Disabling WiFi to enter Offline Mode."
                   - wifi.disable:
 
+  libraries:
+    - Wire
+    - SPI
   platformio_options:
     lib_ldf_mode: deep+
     lib_deps:
@@ -51,6 +54,7 @@ esp32:
   variant: esp32c3
   framework:
     type: arduino
+  toolchain: platformio
 
 logger:
   level: INFO
@@ -141,11 +145,6 @@ external_components:
       type: local
       path: components
     components: [aether_web_ui]
-  - source:
-      type: git
-      url: https://github.com/esphome/esphome
-      ref: dev
-    components: [sen6x, sensirion_common]
 
 # ─── Buses ─────────────────────────────────────────────────────────────────────
 
@@ -180,10 +179,10 @@ sensor:
       name: "PM10"
 
     # Gas Indices
-    voc:
+    voc_index:
       id: voc_index
       name: "VOC Index"
-    nox:
+    nox_index:
       id: nox_index
       name: "NOx Index"
 
