@@ -45,6 +45,7 @@ CONF_VOC = "voc"
 CONF_NOX = "nox"
 CONF_FW_UPDATE = "fw_update"
 CONF_TEMP_UNIT_SWITCH = "temp_unit_switch"
+CONF_HOMEKIT = "homekit"
 
 CONFIG_SCHEMA = cv.Schema(
     {
@@ -66,6 +67,11 @@ CONFIG_SCHEMA = cv.Schema(
         #   - platform: http_request
         #     id: aether_fw_update
         cv.Optional(CONF_FW_UPDATE): cv.use_id(update.UpdateEntity),
+
+        # Optional link to the aether_homekit component, so /api/state can
+        # report pairing status and the setup code. Typed loosely as Component
+        # to avoid importing a sibling external component at schema-build time.
+        cv.Optional(CONF_HOMEKIT): cv.use_id(cg.Component),
     }
 ).extend(cv.COMPONENT_SCHEMA)
 
@@ -92,6 +98,10 @@ async def to_code(config):
     # Wire up the temp unit select
     sw = await cg.get_variable(config[CONF_TEMP_UNIT_SWITCH])
     cg.add(var.set_temp_unit_switch(sw))
+
+    if CONF_HOMEKIT in config:
+        hk = await cg.get_variable(config[CONF_HOMEKIT])
+        cg.add(var.set_homekit(hk))
 
     if CONF_FW_UPDATE in config:
         fw = await cg.get_variable(config[CONF_FW_UPDATE])
