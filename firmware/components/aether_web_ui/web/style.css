@@ -1,5 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
+/* No web fonts: the dashboard must work (and not phone home) on a LAN with no
+   internet. Inter is used when installed locally, else the system UI font. */
 :root {
   --bg-color: #0d0f14;
   --bg-gradient: radial-gradient(circle at top, #1a1e2d 0%, #0d0f14 60%);

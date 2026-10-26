@@ -7,7 +7,9 @@
   <title>Aether - Quick Start & Flasher</title>
   <meta name="description" content="Quick start guide and firmware flashing tool for the Aether Air Quality Monitor.">
   <link rel="stylesheet" href="style.css">
-  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <!-- Exact versions only: unpkg serves a version's files immutably, so a new
+       package release can't change what this flashing page runs. -->
+  <script src="https://unpkg.com/@phosphor-icons/web@2.1.2"></script>
 </head>
 
 <body>
@@ -72,8 +74,8 @@
 
       <section id="display" class="section reveal">
         <h2 class="section-title"><i class="ph ph-screencast"></i> 3. The Display & Metrics</h2>
-        <p class="section-desc">Aether tracks 9 different environmental metrics. The e-paper screen updates every 500ms
-          when data changes.</p>
+        <p class="section-desc">Aether tracks 9 different environmental metrics. The sensor takes a new reading and the
+          e-paper screen refreshes every 5 seconds.</p>
 
         <div class="metrics-grid">
           <div class="metric-item">
@@ -119,8 +121,8 @@
               <div class="action-badge">Short Press</div>
               <div class="action-details">
                 <h4>Device Information</h4>
-                <p>Switches to the Info screen, which displays the device's hostname and IP address, and QR codes for
-                  the instruction manual and local web dashboard.</p>
+                <p>Toggles the Info screen, which displays the device's hostname and IP address, and QR codes for
+                  the instruction manual and local web dashboard. Press again to return to the dashboard.</p>
               </div>
             </li>
             <li>
@@ -146,8 +148,8 @@
               <li><i class="ph-fill ph-check-circle"></i> Change temperature units (°F / °C)</li>
               <li><i class="ph-fill ph-check-circle"></i> Check firmware versions and perform OTA updates</li>
             </ul>
-            <p class="mt-4">Access it by navigating to your device's IP hostname (e.g., aether-a1b2c3.local) address in
-              your browser. These addresses can be found in the 'Device Information' screen.</p>
+            <p class="mt-4">Access it by navigating to your device's hostname (e.g., aether-a1b2c3.local) or IP address in
+              your browser. Both can be found on the 'Device Information' screen.</p>
           </div>
           <div class="split-visual">
             <div class="mock-ui">
@@ -201,8 +203,8 @@
         <h2 class="section-title"><i class="ph ph-house-line"></i> 6. Home Assistant</h2>
         <div class="card">
           <p>Because Aether runs ESPHome, it features a native API over Wi-Fi. Aether will automatically appear in your
-            Home Assistant integrations dashboard once connected to your network. It securely exposes all 9 sensor
-            metrics (CO2, Temp, PM2.5, PM4, PM10, Humidity, VOC, NOx) right out of the box.</p>
+            Home Assistant integrations dashboard once connected to your network. It exposes all 9 sensor metrics
+            (CO2, temperature, humidity, PM1.0, PM2.5, PM4.0, PM10, VOC index, and NOx index) right out of the box.</p>
           <div class="mt-4" style="display: flex; justify-content: center; align-items: center; padding: 1rem 0;">
             <a href="https://my.home-assistant.io/redirect/integrations/" target="_blank" rel="noreferrer noopener"><img
                 src="https://my.home-assistant.io/badges/integrations.svg"
@@ -227,9 +229,9 @@
     <div id="tab-flasher" class="tab-pane">
       <div id="mobile-warning" class="card warning-card" style="display: none; margin-bottom: 24px;">
         <i class="ph ph-warning-circle" style="font-size: 2rem; color: #ef4444; margin-bottom: 12px;"></i>
-        <h3>Desktop Browser Required</h3>
-        <p>WebUSB flashing is not supported on mobile devices. To configure Wi-Fi via USB or update firmware, please
-          visit this page on a desktop Chrome or Edge browser.</p>
+        <h3>Desktop Chrome or Edge Required</h3>
+        <p>This browser can't talk to USB serial devices. To configure Wi-Fi via USB or flash firmware, please
+          visit this page in desktop Chrome or Edge.</p>
       </div>
 
       <div class="flasher-shell">
@@ -254,7 +256,7 @@
           </p>
           <div class="chip-row">
             <div class="chip">1. Connect Aether over USB</div>
-            <div class="chip">2. Choose a flashing path</div>
+            <div class="chip">2. Click Connect and pick the device</div>
             <div class="chip">3. Keep this page open until complete</div>
           </div>
         </div>
@@ -263,17 +265,18 @@
           <div class="action-card action-card--standard">
             <div class="action-header">
               <div>
-                <div class="action-title">Factory Flash</div>
+                <div class="action-title">Install or Update over USB</div>
                 <div class="action-desc">
-                  Installs the latest Aether firmware, bootloader, and partition layout.
-                  Use this for fresh boards or when recovering a device.
+                  Installs the latest Aether firmware, bootloader, and partition layout. If the connected device is
+                  already running Aether firmware, you'll be offered an update that keeps your Wi-Fi and settings;
+                  otherwise the device is erased and gets a fresh image.
                 </div>
               </div>
-              <div class="badge badge--primary">New / Recovery</div>
+              <div class="badge badge--primary">New / Recovery / Update</div>
             </div>
 
             <div class="action-meta">
-              <span>Best for: <strong>first-time setup & full recovery</strong></span>
+              <span>Best for: <strong>first-time setup, recovery & USB updates</strong></span>
               <span>Includes: <strong>complete device image</strong></span>
             </div>
 
@@ -287,10 +290,11 @@
           <div class="action-card action-card--feature">
             <div class="action-header">
               <div>
-                <div class="action-title">Update Firmware (OTA)</div>
+                <div class="action-title">Update over Wi-Fi</div>
                 <div class="action-desc">
-                  Installs the latest Aether firmware while keeping your Wi-Fi and device settings.
-                  Use this if your Aether is already set up and you just want the newest version.
+                  Already set up and on your network? No cable needed. Open the device's local dashboard (its address
+                  is on the Device Information screen), go to <strong>Firmware &amp; updates</strong>, and click
+                  <strong>Update</strong>. Home Assistant offers the same update.
                 </div>
               </div>
               <div class="badge badge--warn">Update</div>
@@ -299,12 +303,6 @@
             <div class="action-meta">
               <span>Best for: <strong>devices on Wi-Fi</strong></span>
               <span>Preserves: <strong>network & device settings</strong></span>
-            </div>
-
-            <div class="file-row">
-              <esp-web-install-button manifest="ota-manifest.json">
-                Install latest Aether firmware
-              </esp-web-install-button>
             </div>
           </div>
         </div>
@@ -322,7 +320,7 @@
 
   <script src="app.js"></script>
   <!-- ESP Web Tools -->
-  <script type="module" src="https://unpkg.com/esp-web-tools@9/dist/web/install-button.js?module"></script>
+  <script type="module" src="https://unpkg.com/esp-web-tools@9.4.3/dist/web/install-button.js?module"></script>
 </body>
 
 </html>

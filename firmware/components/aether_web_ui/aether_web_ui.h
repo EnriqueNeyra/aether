@@ -3,10 +3,15 @@
 #include "esphome/core/component.h"
 #include "esphome/core/log.h"
 #include "esphome/core/defines.h"
+#include "esphome/core/string_ref.h"
 #include "esphome/components/select/select.h"
 #include "esphome/components/web_server_base/web_server_base.h"
 #include "esphome/components/sensor/sensor.h"
 #include "esphome/components/update/update_entity.h"
+
+#ifdef USE_CAPTIVE_PORTAL
+#include "esphome/components/captive_portal/captive_portal.h"
+#endif
 
 #include <string>
 #include <cmath>
@@ -70,17 +75,19 @@ namespace aether
     // AsyncWebHandler interface
     bool canHandle(AsyncWebServerRequest *request) const override
     {
-      auto url = request->url();
-      if ((url == "/" || url == "/index.html") && !request->hasArg("save"))
-        return true;
-      if (url.rfind("/api/", 0) == 0)
+      char url_buf[AsyncWebServerRequest::URL_BUF_SIZE];
+      const esphome::StringRef url = request->url_to(url_buf);
+      if (url == "/" || url == "/index.html")
+        return !captive_portal_active_();
+      if (url.starts_with("/api/"))
         return true;
       return false;
     }
 
     void handleRequest(AsyncWebServerRequest *request) override
     {
-      auto url = request->url();
+      char url_buf[AsyncWebServerRequest::URL_BUF_SIZE];
+      const esphome::StringRef url = request->url_to(url_buf);
       if (url == "/" || url == "/index.html")
       {
         handle_root_(request);
@@ -127,6 +134,19 @@ namespace aether
     static bool has_value_(Sensor *s)
     {
       return s != nullptr && std::isfinite(s->state);
+    }
+
+    // While the setup AP is up, "/" belongs to the captive portal's Wi-Fi form.
+    // Our handler registers first, so without this it would shadow the form for
+    // anyone who browses to the AP address directly.
+    static bool captive_portal_active_()
+    {
+#ifdef USE_CAPTIVE_PORTAL
+      return esphome::captive_portal::global_captive_portal != nullptr &&
+             esphome::captive_portal::global_captive_portal->is_active();
+#else
+      return false;
+#endif
     }
 
     // Append a sensor value as a JSON number or null.
@@ -202,12 +222,16 @@ namespace aether
       }
 
       // Build JSON incrementally so each sensor emits null when unavailable.
-      // After each snprintf, clamp the advance to avoid underflowing rem.
+      // After each snprintf, clamp the advance to avoid underflowing rem, and
+      // remember if anything was cut off.
       char *p = json;
       int rem = sizeof(json);
       int n;
+      bool truncated = false;
 
       auto advance = [&](int written) {
+        if (written < 0 || written >= rem)
+          truncated = true;
         int clamped = (written < rem) ? written : rem - 1;
         if (clamped < 0) clamped = 0;
         p += clamped;
@@ -246,7 +270,7 @@ namespace aether
                update_progress);
       advance(n);
 
-      if (rem <= 0)
+      if (truncated)
       {
         ESP_LOGW(TAG, "JSON response truncated");
         request->send(500, "application/json", "{\"error\":\"response_truncated\"}");

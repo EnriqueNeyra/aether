@@ -215,6 +215,9 @@
       }
     }
 
+    // The hostname carries a per-device MAC suffix, so show the one in use.
+    document.getElementById('footer-ip').textContent = 'Device: ' + window.location.host;
+
     // Poll local state every 5s, which includes the backend's OTA status
     setInterval(pollState, 5000);
     pollState();

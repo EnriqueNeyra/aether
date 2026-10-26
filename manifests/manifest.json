@@ -1,6 +1,7 @@
 {
   "name": "syntropylabs.aether",
   "version": "1.0.13",
+  "home_assistant_domain": "esphome",
   "builds": [
     {
       "chipFamily": "ESP32-C3",
