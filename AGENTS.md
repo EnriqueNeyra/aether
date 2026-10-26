@@ -7,6 +7,7 @@ Aether is a full air-quality monitor project built around an ESP32-C3, a Sensiri
 ```text
 AGENTS.md                                  # This repo-wide guide for coding agents
 README.md                                  # User-facing project overview
+LICENSE                                    # Per-directory license scope + CC BY-NC-SA 4.0 text
 display-compatibility.md                   # Notes on alternative e-paper panels/ICs
 .github/workflows/
 ├── build.yml                              # PR + weekly compile against latest ESPHome
@@ -14,6 +15,7 @@ display-compatibility.md                   # Notes on alternative e-paper panels
 └── pages.yml                              # Deploys www/ + manifests + release binaries
 enclosure/                                 # SolidWorks enclosure + assembly files
 firmware/
+├── LICENSE                                # GPLv3 (covers everything under firmware/)
 ├── aether.yaml                            # Main ESPHome config
 ├── components/
 │   ├── aether_epaper/
@@ -246,6 +248,12 @@ This project tracks the **latest ESPHome release**. `release.yml` installs the n
 - When editing firmware features that span YAML, Python, C++, and browser JS, update every touchpoint together.
 - When changing OTA behavior, keep `firmware/` and `manifests/` aligned.
 - Pushes to `main` that touch `firmware/` cut a release that is offered to every device over OTA. Use `[skip release]` in the commit message for firmware changes that should not ship yet. Changes to `www/` and `manifests/` only redeploy the site.
+
+## Licensing
+
+- `firmware/` is GPLv3 (`firmware/LICENSE`) because the firmware is built on GPLv3 code (ESPHome's C++ runtime, GxEPD2). Anything added to the firmware build must be GPLv3-compatible (e.g. MIT, BSD, Apache-2.0, LGPL, GPLv3). Never add non-commercial or proprietary code to it.
+- Everything else (hardware, enclosure, `www/`, manifests, docs) is CC BY-NC-SA 4.0; see the root `LICENSE`.
+- Third-party assets keep their own licenses, notably the Inter and Satoshi fonts in `firmware/components/aether_epaper/fonts/`.
 
 ## Maintenance Rule
 

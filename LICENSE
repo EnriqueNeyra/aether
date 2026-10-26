@@ -1,3 +1,24 @@
+Aether licensing
+================
+
+This repository is licensed per directory:
+
+- firmware/ is licensed under the GNU General Public License, version 3
+  (GPLv3); see firmware/LICENSE. The firmware is built on GPLv3 code
+  (ESPHome's C++ runtime and the GxEPD2 display driver), so it and the
+  firmware binaries built from it are distributed under GPLv3.
+
+- Everything else in this repository (including hardware/, enclosure/,
+  www/, manifests/ and the documentation) is licensed under the Creative
+  Commons Attribution-NonCommercial-ShareAlike 4.0 International License,
+  whose full text follows.
+
+Third-party components keep their own licenses. That includes the fonts in
+firmware/components/aether_epaper/fonts/ (Inter, and Satoshi from Indian
+Type Foundry) and the libraries the firmware is built with.
+
+=======================================================================
+
 Attribution-NonCommercial-ShareAlike 4.0 International
 
 =======================================================================
