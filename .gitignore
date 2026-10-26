@@ -10,6 +10,7 @@ firmware/components/aether_web_ui/aether_web_ui_html.h
 .github/*
 !.github/workflows/
 .github/workflows/*
+!.github/workflows/build.yml
 !.github/workflows/pages.yml
 !.github/workflows/release.yml
 

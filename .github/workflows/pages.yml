@@ -5,6 +5,14 @@ on:
     workflows: ["Release Firmware"]
     types:
       - completed
+  # Site and manifest edits don't cut a firmware release, so deploy them here.
+  push:
+    branches:
+      - main
+    paths:
+      - "www/**"
+      - "manifests/**"
+      - ".github/workflows/pages.yml"
   workflow_dispatch:
 
 permissions:
@@ -22,29 +30,43 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Configure Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
 
       - name: Build Pages artifact
         run: |
+          set -euo pipefail
           mkdir -p site
           cp -r www/* site/
           cp manifests/manifest.json site/manifest.json
           cp manifests/ota-manifest.json site/ota-manifest.json
-          
-          echo "Downloading latest OTA binary to bypass GitHub Releases redirect..."
-          curl -sL "https://github.com/enriqueneyra/aether/releases/latest/download/aether-ota.bin" -o site/aether-ota.bin
-          
-          echo "Downloading latest factory binary for WebUSB flasher..."
-          curl -sL "https://github.com/enriqueneyra/aether/releases/latest/download/aether-factory.bin" -o site/aether-factory.bin
+
+          # Serve the binaries for the exact version the manifests describe,
+          # not "latest", so a release landing mid-deploy can't mismatch them.
+          VERSION="$(python3 -c 'import json; print(json.load(open("manifests/manifest.json"))["version"])')"
+          OTA_VERSION="$(python3 -c 'import json; print(json.load(open("manifests/ota-manifest.json"))["version"])')"
+          test "${VERSION}" = "${OTA_VERSION}"
+          BASE="https://github.com/EnriqueNeyra/aether/releases/download/v${VERSION}"
+
+          echo "Downloading v${VERSION} binaries to bypass the GitHub Releases redirect..."
+          curl -fsSL "${BASE}/aether-ota.bin" -o site/aether-ota.bin
+          curl -fsSL "${BASE}/aether-factory.bin" -o site/aether-factory.bin
+
+          # Devices reject an OTA image whose MD5 differs from the manifest, so
+          # never publish a pair that disagrees.
+          EXPECTED_MD5="$(python3 -c 'import json; print(json.load(open("manifests/ota-manifest.json"))["builds"][0]["ota"]["md5"])')"
+          ACTUAL_MD5="$(md5sum site/aether-ota.bin | cut -d' ' -f1)"
+          if [ "${EXPECTED_MD5}" != "${ACTUAL_MD5}" ]; then
+            echo "::error::aether-ota.bin MD5 ${ACTUAL_MD5} does not match ota-manifest.json ${EXPECTED_MD5}"
+            exit 1
+          fi
 
           echo "aether.syntropylabs.io" > site/CNAME
-          touch site/.nojekyll
 
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: site
 
@@ -57,4 +79,4 @@ jobs:
     steps:
       - name: Deploy Pages site
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

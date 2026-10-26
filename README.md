@@ -30,7 +30,7 @@
   - [Side button behavior](#side-button-behavior)
   - [Local web UI](#local-web-ui)
   - [Home Assistant & ESPHome API](#home-assistant--esphome-api)
-  - [Updates](#pdates)
+  - [Updates](#updates)
 - [License](#license)
 
 ## Features
@@ -108,33 +108,35 @@ _Any Aether devices purchased through [**Syntropy Labs**](https://syntropylabs.i
 #### For a new board or a device that needs recovery:
 
 1. Connect Aether to your computer over USB.
-2. Open the [Aether WebUSB flashing tool](https://aether.syntropylabs.io/).
-3. Choose **Factory flash (recommended)** for first-time setup or full recovery.
+2. Open the [Aether WebUSB flashing tool](https://aether.syntropylabs.io/) and go to **Firmware & Updates**.
+3. Click **Install Aether firmware** under **Install or Update over USB**.
 4. Keep the page open until flashing is complete.
 5. Let the device boot.
 
 #### For a device that is already set up and just needs newer firmware:
 
-1. Connect the device over USB and open the same flashing page.
-2. Choose **Update firmware (OTA)** if you want to preserve the current device settings.
+- **Over Wi-Fi (recommended):** open the device's [local web UI](#local-web-ui), go to **Firmware & updates**, and click **Update**. Home Assistant offers the same update.
+- **Over USB:** follow the steps above. When the connected device is already running Aether firmware, the flasher offers an **update** that keeps your Wi-Fi and settings instead of erasing the device.
 
-_Note: The flashing page in `www/` is built around **ESP Web Tools / WebUSB** and is intended to work best in **Chrome or Edge**._
+_Note: The flashing page in `www/` is built around **ESP Web Tools / Web Serial** and requires desktop **Chrome or Edge**._
 
 ### Firmware development
 
-If you are working on the ESPHome firmware:
+If you are working on the ESPHome firmware, use the **latest ESPHome release**. Releases are built with it, and CI checks every PR against it. The default PlatformIO toolchain needs Python 3.12–3.14:
 
 ```sh
+pip install --upgrade esphome
 git clone https://github.com/EnriqueNeyra/aether.git
-cd "aether/firmware"
+cd aether/firmware
 ```
 
 ```sh
-cd firmware
 esphome config aether.yaml
 esphome compile aether.yaml
 esphome run aether.yaml
 ```
+
+To try ESPHome's native ESP-IDF toolchain (the default once `toolchain: platformio` is removed in ESPHome 2027.2.0), pass `-s toolchain esp-idf`, e.g. `esphome -s toolchain esp-idf compile aether.yaml`.
 
 ## Using Aether
 
@@ -144,7 +146,7 @@ Once powered, Aether reads the SEN66 and refreshes both the on-device display an
 
 ### Wi-Fi setup and behavior
 
-On boot, Aether will expose a temporary setup access point so you can connect it to Wi-Fi through the captive portal flow. The network will appear as **aether-XXXXX**. 
+On boot, Aether will expose a temporary setup access point so you can connect it to Wi-Fi through the captive portal flow. The network will appear as **aether-XXXXXX**. 
 
 <p align="center"><img alt="aether-access-point" src="https://github.com/user-attachments/assets/989b05f5-8eb8-44bc-84a7-8de18c8cad2c" width="300"></p> 
 
@@ -160,6 +162,7 @@ The side / boot button supports multiple actions:
 - **Short press (tap, under 1 second):** toggles between the normal dashboard and the info screen
 - **Long press (hold ~3 seconds) from the normal screen:** enters factory reset confirmation
 - **Long press (hold ~3 seconds) again on the reset screen:** confirms the factory reset flow
+- **Long press (hold ~3 seconds) on the info screen while Wi-Fi is not connected:** reboots the device, which brings the setup access point back after offline mode
 
 ### Local web UI
 
@@ -174,7 +177,7 @@ When Aether is on your network, it serves a local browser-based dashboard direct
 
 Because Aether runs ESPHome, it features a native API over Wi-Fi. This allows for:
 
-- **Automatic Home Assistant Integration:** Aether will automatically appear in Home Assistant integrations dashboard once connected to your network. It securely exposes all 9 sensor metrics (CO2, Temp, PM2.5, etc).
+- **Automatic Home Assistant Integration:** Aether will automatically appear in Home Assistant integrations dashboard once connected to your network. It exposes all 9 sensor metrics (CO2, temperature, humidity, PM1.0, PM2.5, PM4.0, PM10, VOC index, and NOx index).
 
 <p align="center">
   <a href="https://my.home-assistant.io/redirect/integrations/">
@@ -185,7 +188,8 @@ Because Aether runs ESPHome, it features a native API over Wi-Fi. This allows fo
 - **Custom Integrations:** You can integrate Aether into your own software or scripts using its local HTTP API. Exposed endpoints include:
   - `GET /api/state` - Returns a JSON object with all current sensor metrics and device status.
   - `POST /api/temp_unit?unit=C|F` - Changes the preferred temperature unit.
-  - `POST /api/perform_update` - Triggers the device to immediately begin downloading and installing the latest firmware update over HTTP (if one is available).
+  - `POST /api/check_update` - Asks the device to re-check for a firmware update now.
+  - `POST /api/perform_update` - Triggers the device to immediately begin downloading and installing the latest firmware update over HTTPS (if one is available).
 
 ### Updates
 

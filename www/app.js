@@ -51,8 +51,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Mobile detection for WebUSB warning
-  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-  if (isMobile) {
+  // ESP Web Tools needs Web Serial, which only desktop Chromium browsers ship.
+  // Feature-detect it rather than sniffing the user agent (iPadOS reports as
+  // a Mac, and desktop Firefox/Safari lack it too).
+  if (!('serial' in navigator)) {
     document.getElementById('mobile-warning').style.display = 'block';
   }

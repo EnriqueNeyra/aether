@@ -1,0 +1,88 @@
+name: Build Firmware
+
+# Release builds always install the newest ESPHome, so an ESPHome release can
+# break main without any change here. This workflow compiles every PR and runs
+# weekly against the latest ESPHome so that shows up before a release does.
+
+on:
+  pull_request:
+  schedule:
+    - cron: "0 9 * * 1" # Mondays 09:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compile:
+    name: ESPHome ${{ matrix.esphome }} / ${{ matrix.toolchain }}
+    runs-on: ubuntu-latest
+    # Only the configuration that releases ship with gates; the others are
+    # early warnings for the next ESPHome release and the toolchain migration.
+    continue-on-error: ${{ matrix.experimental }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - esphome: stable
+            toolchain: platformio
+            experimental: false
+          - esphome: stable
+            toolchain: esp-idf
+            experimental: true
+          - esphome: beta
+            toolchain: platformio
+            experimental: true
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - name: Install ESPHome
+        run: |
+          python -m pip install --upgrade pip
+          if [ "${{ matrix.esphome }}" = "beta" ]; then
+            python -m pip install --upgrade --pre esphome
+          else
+            python -m pip install --upgrade esphome
+          fi
+          esphome version
+
+      - name: Validate configuration
+        working-directory: firmware
+        run: esphome -s toolchain ${{ matrix.toolchain }} config aether.yaml > /dev/null
+
+      - name: Compile
+        working-directory: firmware
+        run: |
+          set -o pipefail
+          esphome -s toolchain ${{ matrix.toolchain }} compile aether.yaml 2>&1 | tee build.log
+
+      - name: Report ESPHome deprecations
+        if: always()
+        working-directory: firmware
+        run: |
+          # ESPHome names the release that removes each deprecated option or
+          # API, so surface them on every run instead of waiting for the break.
+          test -f build.log || exit 0
+          sed 's/\x1b\[[0-9;]*[mK]//g' build.log \
+            | grep -E "^WARNING .*(deprecated|[Rr]emoved in)|warning: .*deprecated" \
+            | sort -u > deprecations.txt || true
+          if [ -s deprecations.txt ]; then
+            {
+              echo "### ESPHome deprecations (${{ matrix.esphome }} / ${{ matrix.toolchain }})"
+              echo
+              sed 's/^WARNING /- /' deprecations.txt
+            } >> "$GITHUB_STEP_SUMMARY"
+            while IFS= read -r line; do
+              echo "::warning title=ESPHome deprecation::${line#WARNING }"
+            done < deprecations.txt
+          fi
