@@ -1,6 +1,6 @@
 {
   "name": "syntropylabs.aether",
-  "version": "1.0.13",
+  "version": "1.0.14",
   "home_assistant_domain": "esphome",
   "builds": [
     {
