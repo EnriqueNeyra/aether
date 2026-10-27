@@ -1,5 +1,14 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-@import url('https://api.fontshare.com/v2/css?f[]=satoshi@800&display=swap');
+/* Fontshare serves Satoshi only as a variable font (300-900); a static @800 request returns no @font-face. */
+@import url('https://api.fontshare.com/v2/css?f[]=satoshi@1&display=swap');
+
+/* Inter, self-hosted: variable (wght 100-900) latin subset. SIL OFL 1.1, see vendor/fonts/Inter-OFL.txt. */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('vendor/fonts/Inter-latin-var.woff2') format('woff2');
+}
 
 :root {
   --bg-color: #0d0f14;
@@ -78,6 +87,15 @@ h1, h2, h3, h4 {
 }
 
 .mt-4 { margin-top: 1rem; }
+
+/* Inline SVG icons: sized like the text around them (1em square). */
+.icon {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+  vertical-align: -0.125em;
+}
 
 /* Navigation */
 .navbar {
@@ -166,8 +184,15 @@ button.nav-link.active {
   text-decoration: none;
 }
 
+/* On phones the nav wraps under the logo instead of disappearing, so the
+   Firmware & Updates tab stays reachable. */
 @media (max-width: 600px) {
-  .nav-links { display: none; }
+  /* Sticky instead of fixed: the wrapped bar's height varies, so let content
+     flow below it rather than guessing a top padding. */
+  .navbar { position: sticky; padding: 14px 0; }
+  .nav-content { flex-direction: column; gap: 10px; }
+  .nav-links { gap: 8px 16px; flex-wrap: wrap; justify-content: center; }
+  .container { padding-top: 40px; }
 }
 
 /* Layout */
@@ -276,7 +301,7 @@ button.nav-link.active {
   letter-spacing: -0.02em;
 }
 
-.section-title i {
+.section-title .icon {
   color: var(--accent);
 }
 
@@ -324,6 +349,12 @@ button.nav-link.active {
   color: var(--text-main);
 }
 
+.step-aside {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  margin-top: 8px;
+}
+
 .note {
   margin-top: 24px;
   padding: 16px;
@@ -336,7 +367,7 @@ button.nav-link.active {
   font-size: 0.95rem;
 }
 
-.note i {
+.note .icon {
   color: var(--accent);
   font-size: 1.25rem;
   flex-shrink: 0;
@@ -407,12 +438,15 @@ button.nav-link.active {
 
 .action-badge {
   background: rgba(255, 255, 255, 0.1);
+  border: 1px solid transparent;
   padding: 8px 16px;
   border-radius: 100px;
   font-size: 0.85rem;
   font-weight: 600;
   white-space: nowrap;
   margin-top: 2px;
+  min-width: 9.25rem;
+  text-align: center;
 }
 
 .action-badge.warning {
@@ -468,7 +502,7 @@ button.nav-link.active {
   color: var(--text-muted);
 }
 
-.feature-list i {
+.feature-list .icon {
   color: var(--accent);
 }
 
@@ -810,6 +844,15 @@ button.nav-link.active {
   gap: 12px;
 }
 
+/* On phones the nowrap badge would squeeze the title/description into a
+   narrow column, so stack it above them instead. */
+@media (max-width: 600px) {
+  .action-header {
+    flex-direction: column-reverse;
+    gap: 10px;
+  }
+}
+
 .action-title {
   font-size: 16px;
   font-weight: 700;
@@ -865,26 +908,84 @@ button.nav-link.active {
   padding-top: 8px;
 }
 
+/* ESP Web Tools install button. The <button slot="activate"> and the
+   unsupported / not-allowed messages are light-DOM children, so they are
+   styled here. Until the element is defined, hide them to avoid a flash of
+   the wrong state. */
 esp-web-install-button {
-  --esp-tools-button-background: #ffffff;
-  --esp-tools-button-border-radius: 12px;
-  --esp-tools-button-padding: 10px 20px;
-  --esp-tools-button-color: #000000;
-  --esp-tools-button-font-weight: 700;
-  --esp-tools-button-font-size: 13px;
-  --esp-tools-button-border: none;
-  --esp-tools-button-hover-background: rgba(255, 255, 255, 0.95);
-  --esp-tools-button-disabled-background: rgba(255, 255, 255, 0.18);
-  --esp-tools-button-disabled-color: rgba(255, 255, 255, 0.5);
-  transition: transform 0.2s, box-shadow 0.2s;
-  display: inline-block;
+  display: block;
 }
 
-esp-web-install-button:hover:not([disabled]) {
+esp-web-install-button:not(:defined) {
+  visibility: hidden;
+}
+
+esp-web-install-button:not(:defined) > [slot="unsupported"],
+esp-web-install-button:not(:defined) > [slot="not-allowed"] {
+  display: none;
+}
+
+.install-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 22px;
+  border: none;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #0d0f14;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.install-btn:hover:not(:disabled) {
+  background: #e8edff;
   transform: translateY(-2px);
+  box-shadow: 0 10px 28px rgba(107, 138, 252, 0.3);
+}
+
+.install-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+.install-btn:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.install-btn:disabled {
+  background: rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.5);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.install-msg {
+  display: block;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 10px;
+  padding: 10px 12px;
 }
 
 .warning-card {
   border-color: rgba(239, 68, 68, 0.3);
   background: rgba(239, 68, 68, 0.05);
+}
+
+.warning-card .warning-icon {
+  display: block;
+  font-size: 2rem;
+  color: var(--warning);
+  margin-bottom: 12px;
 }

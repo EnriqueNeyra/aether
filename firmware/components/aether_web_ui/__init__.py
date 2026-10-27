@@ -6,6 +6,9 @@ from esphome.components import sensor, web_server_base, update, select
 
 # Make sure web_server_base and update core are loaded
 AUTO_LOAD = ["web_server_base", "update"]
+# web_server is what starts the shared HTTP listener; this component only
+# attaches a handler to it, so the dashboard is unreachable without it.
+DEPENDENCIES = ["web_server"]
 
 _BASE_DIR = os.path.dirname(__file__)
 _WEB_DIR = os.path.join(_BASE_DIR, 'web')

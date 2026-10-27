@@ -83,9 +83,16 @@ select:
 
 api:
   reboot_timeout: 0s
+  # No key in the (public) firmware: the device boots unprovisioned and still
+  # accepts existing plaintext clients until a client such as Home Assistant
+  # sets a key, after which the API is encrypted-only. Factory reset clears it.
+  encryption:
 
+# Releases update over HTTPS from the official manifest (or over USB). There is
+# deliberately no `platform: esphome` OTA here: it would let anyone on the LAN
+# flash firmware, and a password would be readable in the public binary. Use
+# aether-dev.yaml to flash development builds over Wi-Fi.
 ota:
-  - platform: esphome
   - platform: http_request
     id: ota_http
 
@@ -122,6 +129,8 @@ binary_sensor:
     name: "Boot Button"
     id: boot_button
     internal: true
+    filters:
+      - delayed_on_off: 10ms # debounce
     on_multi_click:
       - timing:
           - ON for 50ms to 1s
@@ -137,15 +146,19 @@ binary_sensor:
               }
 captive_portal:
 improv_serial:
+# Bluetooth Wi-Fi provisioning needs a press of the side button to authorize,
+# so a nearby phone can't silently re-point the device at another network.
 improv_ble:
-  authorizer: none
+  authorizer: boot_button
 
 # Web server automatically registers mDNS _http._tcp on port 80
 web_server:
   port: 80
   version: 3
   local: true
-  include_internal: true
+  # No firmware uploads over HTTP. The captive portal still accepts them while
+  # the setup AP is up, as the recovery path for an unconfigured device.
+  ota: false
 
 external_components:
   - source:

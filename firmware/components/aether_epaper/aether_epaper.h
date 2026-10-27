@@ -11,6 +11,7 @@
 
 // ESPHome includes
 #include "esphome/core/application.h"
+#include "esphome/core/log.h"
 #include "esphome/components/wifi/wifi_component.h"
 
 // Layout and Fonts
@@ -51,6 +52,8 @@ namespace aether
       MODE_RESET
     };
 
+    static const char *const EPD_TAG = "aether_epaper";
+
     static bool s_inited = false;
     static DisplayMode g_display_mode = MODE_BOOT;
     static bool g_use_f = false;
@@ -58,8 +61,13 @@ namespace aether
     static uint8_t g_boot_frame = 0;
     static int8_t g_last_info_wifi_state = -1;
     static unsigned long g_last_normal_render_ms = 0;
+    static unsigned long g_last_full_refresh_ms = 0;
     static unsigned long g_last_boot_frame_ms = 0;
     static unsigned long g_boot_start_ms = 0;
+    static unsigned long g_reset_entered_ms = 0;
+    static char g_last_dashboard_key[128] = "";
+    static bool g_display_faulted = false;
+    static unsigned long g_display_fault_ms = 0;
 
     // --- Cached Layout Data ---
     struct BootWordmarkLayout
@@ -78,6 +86,13 @@ namespace aether
     static constexpr unsigned long BOOT_FRAME_MS = 500;
     static constexpr uint8_t BOOT_SLASH_FRAME_COUNT = 4;
     static constexpr unsigned long BOOT_TIMEOUT_MS = 75000;
+    static constexpr unsigned long FULL_REFRESH_INTERVAL_MS = 24UL * 60 * 60 * 1000; // clears ghosting
+    static constexpr unsigned long RESET_CONFIRM_TIMEOUT_MS = 30000;
+    // A healthy refresh takes ~2.3 s (full) or ~0.5 s (partial). One this slow
+    // means GxEPD2 hit its 10 s BUSY timeout: the panel is unplugged or stuck.
+    // A retry on a dead panel blocks the loop for up to ~30 s, so retry rarely.
+    static constexpr unsigned long DISPLAY_FAULT_RENDER_MS = 8000;
+    static constexpr unsigned long DISPLAY_FAULT_RETRY_MS = 5UL * 60 * 1000;
     static constexpr const char *INFO_INSTRUCTIONS_URL = "https://aether.syntropylabs.io/";
 
     inline void draw_info_qr_card(int x, int y, const char *target);
@@ -85,10 +100,47 @@ namespace aether
                                   int scale, int padding);
     inline void draw_connected_info_bracket(bool left_side);
 
+    // --- Panel Health ---
+    // GxEPD2 waits up to 10 s per BUSY phase and only yields, so an unplugged or
+    // stuck panel would trip ESPHome's 5 s loop watchdog and boot-loop the
+    // device. Feed the watchdog and let the idle task run while waiting.
+    inline void on_display_busy(const void *)
+    {
+      esphome::App.feed_wdt();
+      delay(1);
+    }
+
+    // Marks the panel faulted after a refresh that hit the BUSY timeout, so the
+    // render loop stops blocking ESPHome on it and only retries occasionally.
+    inline void note_render_time(unsigned long started_ms)
+    {
+      const unsigned long now = millis();
+      ESP_LOGD(EPD_TAG, "Display refresh took %lu ms", now - started_ms);
+      if (now - started_ms >= DISPLAY_FAULT_RENDER_MS)
+      {
+        if (!g_display_faulted)
+          ESP_LOGE(EPD_TAG, "Display refresh took %lu ms; panel not responding, retrying every %lu s",
+                   now - started_ms, DISPLAY_FAULT_RETRY_MS / 1000);
+        g_display_faulted = true;
+        g_display_fault_ms = now;
+      }
+      else if (g_display_faulted)
+      {
+        ESP_LOGI(EPD_TAG, "Display responding again");
+        g_display_faulted = false;
+      }
+    }
+
+    inline bool display_backing_off(unsigned long now)
+    {
+      return g_display_faulted && now - g_display_fault_ms < DISPLAY_FAULT_RETRY_MS;
+    }
+
     // --- Paged Rendering Helper ---
     template <typename F>
     inline void render_paged(bool full_refresh, F &&draw_func)
     {
+      const unsigned long started = millis();
       if (full_refresh)
         display.setFullWindow();
       else
@@ -100,6 +152,10 @@ namespace aether
         draw_func();
         esphome::App.feed_wdt();
       } while (display.nextPage());
+
+      if (full_refresh)
+        g_last_full_refresh_ms = millis();
+      note_render_time(started);
     }
 
     // --- Initialization & Validation ---
@@ -114,7 +170,10 @@ namespace aether
       pinMode(EPD_BUSY, INPUT);
 
       SPI.begin(EPD_SCK, -1, EPD_MOSI);
+      display.epd2.setBusyCallback(on_display_busy);
+      const unsigned long init_started = millis();
       display.init(115200, true, 2, false);
+      note_render_time(init_started);
       display.setRotation(1);
 
       // Calculate boot layout once
@@ -186,6 +245,7 @@ namespace aether
         int px = g_boot_layout.slash_1_x - 12, py = g_boot_layout.baseline_y - 40;
         int pw = (g_boot_layout.right_x - g_boot_layout.slash_1_x) + 24, ph = 60;
 
+        const unsigned long started = millis();
         display.setPartialWindow(px, py, pw, ph);
         display.firstPage();
         do
@@ -200,16 +260,32 @@ namespace aether
             aether_epaper_layout::print_left(display, g_boot_layout.slash_2_x, g_boot_layout.baseline_y, &Satoshi_800_subset22pt7b, "/");
           esphome::App.feed_wdt();
         } while (display.nextPage());
+        note_render_time(started);
       }
+    }
+
+    inline aether_epaper_layout::Metrics current_metrics()
+    {
+      return {g_co2, g_temp, g_rh, g_pm1, g_pm25, g_pm4, g_pm10, g_voc, g_nox};
     }
 
     inline void render_normal(bool full)
     {
       render_paged(full, []()
                    {
-        aether_epaper_layout::Metrics m = {g_co2, g_temp, g_rh, g_pm1, g_pm25, g_pm4, g_pm10, g_voc, g_nox};
-        aether_epaper_layout::render_sketch_layout(display, m, g_use_f); });
+        aether_epaper_layout::render_sketch_layout(display, current_metrics(), g_use_f); });
+      aether_epaper_layout::format_dashboard_key(g_last_dashboard_key, sizeof(g_last_dashboard_key),
+                                                 current_metrics(), g_use_f);
       g_last_normal_render_ms = millis();
+    }
+
+    // True when the dashboard would draw something different from what the
+    // panel shows, so unchanged readings don't cost a partial refresh.
+    inline bool dashboard_changed()
+    {
+      char key[sizeof(g_last_dashboard_key)];
+      aether_epaper_layout::format_dashboard_key(key, sizeof(key), current_metrics(), g_use_f);
+      return strcmp(key, g_last_dashboard_key) != 0;
     }
 
     inline bool wifi_connected()
@@ -431,7 +507,7 @@ namespace aether
 
     inline void redraw(bool full)
     {
-      if (!s_inited)
+      if (!s_inited || display_backing_off(millis()))
         return;
       switch (g_display_mode)
       {
@@ -472,6 +548,7 @@ namespace aether
       if (g_display_mode == MODE_RESET)
         return true;
       g_display_mode = MODE_RESET;
+      g_reset_entered_ms = millis();
       redraw(true);
       return false;
     }
@@ -491,6 +568,15 @@ namespace aether
       g_use_f = use_f;
 
       unsigned long now = millis();
+      const bool backing_off = display_backing_off(now);
+
+      // Retry a faulted panel with a full redraw of whatever it should show.
+      if (g_display_faulted && !backing_off)
+      {
+        redraw(true);
+        return;
+      }
+
       if (g_display_mode == MODE_BOOT)
       {
         if (g_boot_start_ms == 0)
@@ -499,9 +585,13 @@ namespace aether
         if (all_metrics_ready() || (now - g_boot_start_ms >= BOOT_TIMEOUT_MS))
         {
           g_display_mode = MODE_NORMAL;
-          render_normal(true);
+          if (!backing_off)
+            render_normal(true);
           return;
         }
+
+        if (backing_off)
+          return;
 
         if (g_boot_full_refreshes < 1)
         {
@@ -520,13 +610,28 @@ namespace aether
         return;
       }
 
+      // An unconfirmed factory reset must not stay armed: cancel it so a later
+      // accidental long press can't wipe the device.
+      if (g_display_mode == MODE_RESET && now - g_reset_entered_ms >= RESET_CONFIRM_TIMEOUT_MS)
+      {
+        g_display_mode = MODE_NORMAL;
+        if (!backing_off)
+          render_normal(true);
+        return;
+      }
+
+      if (backing_off)
+        return;
+
       if (g_display_mode == MODE_NORMAL && (g_last_normal_render_ms == 0 || now - g_last_normal_render_ms >= NORMAL_REFRESH_MS))
       {
-        // Prevent e-paper ghosting by running a full refresh every ~24 hours (17280 * 5s)
-        static unsigned int normal_refresh_count = 1;
-        bool full_refresh = (normal_refresh_count % 17280 == 0);
-        render_normal(full_refresh);
-        normal_refresh_count++;
+        // Refresh only when the drawn values change, plus a daily full refresh
+        // to clear e-paper ghosting.
+        const bool full_refresh = now - g_last_full_refresh_ms >= FULL_REFRESH_INTERVAL_MS;
+        if (full_refresh || dashboard_changed())
+          render_normal(full_refresh);
+        else
+          g_last_normal_render_ms = now;
         return;
       }
 

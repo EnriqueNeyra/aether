@@ -9,7 +9,11 @@
       btn.addEventListener('click', () => {
         const tab = btn.dataset.tab;
         // activate button
-        tabButtons.forEach(b => b.classList.toggle('tab-btn--active', b === btn));
+        tabButtons.forEach(b => {
+          const active = b === btn;
+          b.classList.toggle('tab-btn--active', active);
+          b.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
         // show panel
         Object.entries(tabPanels).forEach(([key, panel]) => {
           panel.classList.toggle('tab-panel--active', key === tab);
@@ -37,6 +41,7 @@
     let updateState = 'unknown';
     let updateProgress = 0.0;
     let hasUpdate = false;
+    let installFailed = false;
     let currentTempUnit = 'F';
 
     function formatNumber(v, digits = 1) {
@@ -47,7 +52,9 @@
     function applyUnitToUI(unit) {
       currentTempUnit = unit;
       unitButtons.forEach(btn => {
-        btn.classList.toggle('unit-btn--active', btn.dataset.unit === unit);
+        const active = btn.dataset.unit === unit;
+        btn.classList.toggle('unit-btn--active', active);
+        btn.setAttribute('aria-pressed', active ? 'true' : 'false');
       });
     }
 
@@ -138,9 +145,11 @@
       }
 
       if (hasUpdate) {
-        fwBadgeEl.textContent = 'Update available';
+        fwBadgeEl.textContent = installFailed ? 'Update failed' : 'Update available';
         fwBadgeEl.className = 'fw-badge fw-badge--warn';
-        fwStatusTextEl.textContent = 'A newer firmware is available. Click the button to install it over Wi-Fi.';
+        fwStatusTextEl.textContent = installFailed
+          ? 'The last update attempt failed. Check that the device can reach the internet, then try again.'
+          : 'A newer firmware is available. Click the button to install it over Wi-Fi.';
         fwUpdateBtn.disabled = false;
         fwUpdateBtn.textContent = 'Update to ' + latestFwVersion;
       } else {
@@ -158,6 +167,7 @@
       updateState = data.update_state || 'unknown';
       updateProgress = data.update_progress || 0.0;
       hasUpdate = data.has_update || false;
+      installFailed = data.install_failed || false;
       renderFirmwareStatus();
     }
 
@@ -168,6 +178,13 @@
 
       try {
         const res = await fetch('/api/perform_update', { method: 'POST' });
+        if (res.status === 409) {
+          fwStatusTextEl.textContent = 'No update is available right now.';
+          setTimeout(() => {
+            renderFirmwareStatus();
+          }, 3000);
+          return;
+        }
         if (!res.ok) throw new Error('bad status');
         // If the device reboots quickly, this page will drop connection anyway.
         fwStatusTextEl.textContent = 'Update started. This page may become unreachable while the device reboots.';

@@ -1,6 +1,6 @@
 ## Project Summary
 
-Aether is a full air-quality monitor project built around an ESP32-C3, a Sensirion SEN66, a 3.7" GDEY037T03 e-paper display, a local browser UI, a WebUSB flashing page, and the supporting PCB/enclosure design files. Most agent work should focus on `firmware/`, `manifests/`, and `www/`; `hardware/` and `enclosure/` are reference/design assets and should usually only receive small, targeted documentation or file-organization updates.
+Aether is a full air-quality monitor project built around an ESP32-C3, a Sensirion SEN66, a 3.7" GDEY037T03 e-paper display, a local browser UI, a USB (Web Serial) flashing page, and the supporting PCB/enclosure design files. Most agent work should focus on `firmware/`, `manifests/`, and `www/`; `hardware/` and `enclosure/` are reference/design assets and should usually only receive small, targeted documentation or file-organization updates.
 
 ## Repository Layout
 
@@ -16,12 +16,13 @@ display-compatibility.md                   # Notes on alternative e-paper panels
 enclosure/                                 # SolidWorks enclosure + assembly files
 firmware/
 ├── LICENSE                                # GPLv3 (covers everything under firmware/)
-├── aether.yaml                            # Main ESPHome config
+├── aether.yaml                            # Main (release) ESPHome config
+├── aether-dev.yaml                        # Release config + ESPHome network OTA, for development
 ├── components/
 │   ├── aether_epaper/
 │   │   ├── aether_epaper.h                # Display driver, render loop, mode state
 │   │   ├── aether_epaper_layout.h         # Shared layout + drawing primitives
-│   │   └── fonts/                         # Adafruit GFX font headers + TTF sources
+│   │   └── fonts/                         # Adafruit GFX font headers, Inter TTFs, font licenses (README.md)
 │   └── aether_web_ui/
 │       ├── __init__.py                    # ESPHome codegen + HTML inlining
 │       ├── aether_web_ui.h                # AsyncWebHandler + JSON/API endpoints
@@ -31,10 +32,11 @@ manifests/
 ├── manifest.json                          # Factory flashing manifest
 └── ota-manifest.json                      # OTA manifest consumed by firmware updates
 www/
-├── index.html                             # Combined Quick Start Guide & WebUSB flasher
+├── index.html                             # Combined Quick Start Guide & USB (Web Serial) flasher
 ├── style.css                              # Site styling
 ├── app.js                                 # Scroll animations, tab logic, Web Serial check
-└── assets/                                # Site images
+├── assets/                                # Site images
+└── vendor/                                # Self-hosted ESP Web Tools and Inter font (with licenses)
 hardware/
 ├── pcb/                                   # KiCad project
 ├── manufacturing/                         # PCB zip, BOM, centroid exports
@@ -64,8 +66,9 @@ hardware/
 - SEN66 sensor entities
 - the custom `aether_web_ui` external component
 - the e-paper render loop
-- Wi-Fi / captive portal / Improv setup (`improv_serial` over USB, `improv_ble` over Bluetooth)
-- ESPHome OTA + HTTP OTA update support
+- Wi-Fi / captive portal / Improv setup (`improv_serial` over USB, `improv_ble` over Bluetooth, authorized by a side-button press)
+- HTTP OTA update support (no ESPHome network OTA in release builds; see OTA / Update Path)
+- the native API with keyless encryption (`api: encryption:` with no key; a client such as Home Assistant provisions one)
 - the persisted temperature unit preference
 - the ESP32 build toolchain, selected by the `toolchain` substitution (see ESPHome Version Policy below)
 
@@ -100,6 +103,12 @@ When adding or renaming a metric, keep YAML IDs, `aether_web_ui` config keys, Py
 
 The shared layout math lives in `aether_epaper_layout.h`.
 
+Display behavior worth knowing before changing it:
+
+- The main dashboard only refreshes when what it would draw changes, based on `format_dashboard_key()`, which formats values exactly as drawn plus alert flags. It also does a full refresh every 24 h to clear ghosting. Keep `format_dashboard_key()` in sync with `render_sketch_layout()`, and use the shared alert thresholds and `display_temperature()`.
+- GxEPD2's BUSY wait (up to 10 s per phase) runs a busy callback that feeds the watchdog. A refresh slower than 8 s marks the panel faulted. Rendering then stops blocking the main loop and retries every 5 minutes, so a missing or broken panel can't boot-loop the device (issue #5). Each refresh logs its duration at DEBUG level (`Display refresh took N ms`). On a working GDEY037T03 a partial refresh takes about 0.4-0.5 s and a full one about 2.3 s.
+- `MODE_RESET` cancels itself back to `MODE_NORMAL` after 30 s.
+
 ### Temperature Unit Preference
 
 Temperature unit is currently a persisted **ESPHome template select**, not a switch:
@@ -121,7 +130,15 @@ Internally, temperatures stay in Celsius. The display converts at render time, a
 - `POST /api/check_update` - re-checks the OTA manifest
 - `POST /api/temp_unit?unit=C|F` - changes the temperature unit select
 
-The handler reads request paths with `url_to()` into a stack buffer; `AsyncWebServerRequest::url()` was removed in ESPHome 2026.9.0. The browser app in `firmware/components/aether_web_ui/web/` polls `/api/state` every **5 seconds** and loads no external resources (no web fonts or CDNs), so it works on a LAN without internet.
+Requests are served on the ESP-IDF httpd task, not the main loop:
+
+- Handlers never change entities directly. Selects, update installs and checks go through `this->defer(...)`, as ESPHome's own `web_server` does.
+- `/api/state` reads update and unit status from a snapshot that `loop()` refreshes under a mutex. Sensor floats are read directly.
+- `/api/*` requests with an `Origin` that doesn't match `Host` get `400` (`forbidden_origin`), the same rule ESPHome's `web_server` uses. Errors use 400 rather than 403/405 because ESPHome's ESP32 server sends any status other than 200, 204, 400, 401, 404, 409 or 422 as 500.
+- `POST /api/perform_update` returns `409` when no update is available, and `/api/state` includes `install_failed` after an install drops back to AVAILABLE.
+- Paths are read with `url_to()` into a stack buffer; `AsyncWebServerRequest::url()` was removed in ESPHome 2026.9.0.
+- The component declares `DEPENDENCIES = ["web_server"]`, because `web_server` is what starts the HTTP listener.
+ The browser app in `firmware/components/aether_web_ui/web/` polls `/api/state` every **5 seconds** and loads no external resources (no web fonts or CDNs), so it works on a LAN without internet.
 
 ### Web UI Build Pipeline
 
@@ -135,10 +152,11 @@ Always edit the `web/` source files, never the generated header.
 
 ### OTA / Update Path
 
-The firmware exposes two update mechanisms:
+The release firmware (`aether.yaml`) installs updates only through `update: platform: http_request`, from the official manifest over verified HTTPS, or over USB.
 
-- `ota: platform: esphome` for normal ESPHome development flashing
-- `update: platform: http_request` for release OTA checks and installation
+- There is deliberately no `ota: platform: esphome` in `aether.yaml`. It would let anyone on the LAN flash firmware, and a password would be readable in the public binary.
+- `firmware/aether-dev.yaml` includes `aether.yaml` as a package and adds `ota: platform: esphome` for development flashing over Wi-Fi. Never release it.
+- `web_server: ota: false` keeps `POST /update` closed. The captive portal still accepts uploads while the setup AP is active, as ESPHome's recovery path.
 
 Current OTA source in firmware:
 
@@ -153,18 +171,21 @@ The web UI triggers installation through `fw_update_->perform(false)`.
 - The device starts with a temporary AP for captive-portal onboarding.
 - After 10 minutes, if Wi-Fi is still unconfigured, firmware disables Wi-Fi and enters offline mode.
 - `api.reboot_timeout: 0s` and `wifi.reboot_timeout: 0s` avoid reboot loops while disconnected.
-- `web_server` runs on port 80 with local access enabled.
+- `web_server` runs on port 80 with local access enabled, `ota: false`, and without `include_internal`.
+- `improv_ble` uses `authorizer: boot_button`, so Bluetooth Wi-Fi provisioning needs a physical button press.
 
 ### Button Behavior
 
 The boot button supports two gestures via `on_multi_click`:
 
 - Short press (50ms-1s): toggle normal/info screen
-- Long press (>=3s): enter reset flow, confirm reset, or reboot from disconnected info mode depending on the current display mode
+- Long press (>=3s): enter reset flow, confirm reset, or reboot from disconnected info mode depending on the current display mode. An unconfirmed reset screen times out after 30 s.
+
+The button has a 10 ms `delayed_on_off` debounce filter. It is also the `improv_ble` authorizer, so pressing it authorizes Bluetooth provisioning.
 
 ## Web and Manifests
 
-`www/` contains the combined Quick Start Guide and WebUSB flashing flow.
+`www/` contains the combined Quick Start Guide and USB flashing flow. It uses ESP Web Tools over Web Serial, self-hosted from `www/vendor/` at a pinned version, and loads no third-party scripts. Fontshare's CSS for the Satoshi logo font is the only external resource.
 `manifests/` contains the JSON definitions used by both the flasher and firmware updates:
 
 - `manifest.json` points to the factory image (`aether-factory.bin`) for ESP Web Tools. Its `name` must stay equal to the ESPHome `project.name` (`syntropylabs.aether`): Improv reports that name, and ESP Web Tools uses the match to offer a settings-preserving update instead of an erase-and-install.
@@ -207,16 +228,23 @@ To try the native ESP-IDF toolchain without editing the YAML:
 esphome -s toolchain esp-idf compile aether.yaml
 ```
 
+To flash a development build over Wi-Fi, use the dev config. The device must already run a dev build; release builds only accept USB or the official update:
+
+```bash
+esphome run aether-dev.yaml --device <device-ip>
+```
+
 Build output lands in `.esphome/build/aether/.pioenvs/aether/` (platformio) or `.esphome/build/aether/build/` (esp-idf); `release.yml` searches for `firmware.factory.bin` / `firmware.ota.bin` in either.
 
 ### ESPHome Version Policy
 
 This project tracks the **latest ESPHome release**. `release.yml` installs the newest ESPHome on every release, so a new ESPHome version can break `main` with no repo change.
 
-- `build.yml` compiles every PR, and runs weekly, against the latest stable ESPHome (gating). Two non-gating jobs act as early warnings: the native esp-idf toolchain, and the latest beta.
+- `build.yml` compiles every PR, and runs weekly, against the latest stable ESPHome. Its "Release config (ESPHome stable)" job builds exactly what `release.yml` builds; make it the required status check on `main`. Two early-warning jobs report failures as annotations without failing the check: "esp-idf toolchain (ESPHome stable)" and "Release config (ESPHome beta)". The beta job pins the newest pre-release of ESPHome only, not of its dependencies.
+- GitHub disables scheduled workflows after 60 days without repository activity. If the weekly run stops, re-enable it in the Actions tab.
 - Treat ESPHome deprecation warnings as must-fix. They name the release that removes the feature, and `build.yml` surfaces them as annotations and in the job summary.
 - Build locally with the newest ESPHome before changing firmware. The PlatformIO toolchain needs Python 3.10-3.14; ESPHome itself supports 3.12-3.14.
-- Toolchain migration: ESPHome removes `toolchain: platformio` in 2027.2.0. On ESPHome 2026.10.0 the esp-idf toolchain fails: Adafruit GFX's `library.properties` dependency on Adafruit BusIO isn't resolved. The fix (esphome/esphome#21317) is milestoned for 2026.10.1, and this project builds with esp-idf on ESPHome `dev` with that fix. Once the esp-idf CI job is green on a stable release, set the `toolchain` substitution default in `aether.yaml` to `esp-idf`, and drop `platformio_options.lib_ldf_mode`; the native toolchain ignores it and warns.
+- Toolchain migration: ESPHome removes `toolchain: platformio` in 2027.2.0. On ESPHome 2026.10.0 the esp-idf toolchain fails: Adafruit GFX's `library.properties` dependency on Adafruit BusIO isn't resolved. The fix (esphome/esphome#21317) is milestoned for 2026.10.1, and this project builds with esp-idf on ESPHome `dev` with that fix. Once the esp-idf CI job is green on a stable release, set the `toolchain` substitution default in `aether.yaml` to `esp-idf`, and drop `platformio_options.lib_ldf_mode`; the native toolchain ignores it and warns. The gating job then builds esp-idf automatically. Point the early-warning job at `platformio`, or drop it.
 
 ## Codebase Conventions
 
@@ -247,13 +275,14 @@ This project tracks the **latest ESPHome release**. `release.yml` installs the n
 - Preserve stable IDs, config keys, API keys, and route names unless migration is part of the task.
 - When editing firmware features that span YAML, Python, C++, and browser JS, update every touchpoint together.
 - When changing OTA behavior, keep `firmware/` and `manifests/` aligned.
-- Pushes to `main` that touch `firmware/` cut a release that is offered to every device over OTA. Use `[skip release]` in the commit message for firmware changes that should not ship yet. Changes to `www/` and `manifests/` only redeploy the site.
+- Pushes to `main` that touch `firmware/` cut a release that is offered to every device over OTA. For firmware changes that should not ship yet, put `[skip release]` in the pushed commit's message. When merging a PR, that means the merge commit's subject or the PR title, since GitHub puts the PR title in the merge commit. Changes to `www/` and `manifests/` only redeploy the site.
+- `release.yml` rebases its version-bump commit onto `main` if `main` moved during the build, and tags the commit that was pushed.
 
 ## Licensing
 
 - `firmware/` is GPLv3 (`firmware/LICENSE`) because the firmware is built on GPLv3 code (ESPHome's C++ runtime, GxEPD2). Anything added to the firmware build must be GPLv3-compatible (e.g. MIT, BSD, Apache-2.0, LGPL, GPLv3). Never add non-commercial or proprietary code to it.
 - Everything else (hardware, enclosure, `www/`, manifests, docs) is CC BY-NC-SA 4.0; see the root `LICENSE`.
-- Third-party assets keep their own licenses, notably the Inter and Satoshi fonts in `firmware/components/aether_epaper/fonts/`.
+- Third-party assets keep their own licenses: the Inter (SIL OFL 1.1) and Satoshi (Indian Type Foundry, Fontshare terms) fonts in `firmware/components/aether_epaper/fonts/` (see its README), and ESP Web Tools (Apache-2.0) and Inter in `www/vendor/`. Don't commit Satoshi font files; only the generated logo-subset header is in the repo.
 
 ## Maintenance Rule
 

@@ -6,14 +6,6 @@ preview
 firmware/secrets.yaml
 firmware/components/aether_web_ui/aether_web_ui_html.h
 
-# Allow committed GitHub workflows while keeping other .github files ignored
-.github/*
-!.github/workflows/
-.github/workflows/*
-!.github/workflows/build.yml
-!.github/workflows/pages.yml
-!.github/workflows/release.yml
-
 # KiCad temporary files, caches, and locks
 *.kicad_prl
 *.lock
