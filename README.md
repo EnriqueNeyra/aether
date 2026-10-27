@@ -1,6 +1,6 @@
 # Aether
 
-<img width="4285" height="2857" alt="A6700222" src="https://github.com/user-attachments/assets/8be34c35-cbe4-4628-9b6f-72ee45ff123e" />
+<img width="1600" height="1067" alt="Aether air quality monitor showing its e-paper dashboard" src="docs/images/aether-hero.jpg" />
 
 ### Aether is a comprehensive air quality monitor by [**Syntropy Labs**](https://syntropylabs.io/products/aether-air-quality-monitor) built around an ESP32-C3, a Sensirion SEN66 sensor, and a 3.7" e-paper display. It measures **CO2, Temperature, Humidity, PM1.0, PM2.5, PM4.0, PM10, VOC index, and NOx index**, and exposes those readings on-device, on the local network, and through Home Assistant.
 
@@ -58,7 +58,7 @@ To build one Aether unit, the following core parts are needed:
 
 _The Amazon links are affiliate links: as an Amazon Associate, the author earns from qualifying purchases._
 
-<p align="center"><img alt="A6700230" src="https://github.com/user-attachments/assets/9861c7f3-c20a-4694-845d-c945b032f5fe" width="700"></p>
+<p align="center"><img alt="Aether parts laid out before assembly" src="docs/images/aether-front.jpg" width="700"></p>
 
 ### Alternative Display Compatibility
 
@@ -76,32 +76,32 @@ High-level assembly flow:
 
 ### 1. Press-fit the SEN66 into the enclosure body.
 
-<p align="center"><img alt="Insert_SEN66_into_Enclosure" src="https://github.com/user-attachments/assets/6f8cd045-af82-40ae-ae59-631ba9e61631" width="700"></p>
+<p align="center"><img alt="Insert_SEN66_into_Enclosure" src="docs/images/assembly-1-insert-sen66.jpg" width="700"></p>
 
 ### 2. Connect the e-paper display to the PCB with the FPC connector.
 
-<p align="center"><img alt="Connect_ePaper_to_PCB" src="https://github.com/user-attachments/assets/74e306dd-42e3-4feb-860c-e935da8fb220" width="700"></p>
+<p align="center"><img alt="Connect_ePaper_to_PCB" src="docs/images/assembly-2-connect-epaper.jpg" width="700"></p>
 
 ### 3. Press-fit the PCB into the enclosure body.
 
-<p align="center"><img alt="Insert_PCB_into_Enclosure" src="https://github.com/user-attachments/assets/752068ef-0f64-40fd-9949-34c260d7f2eb" width="700"></p>
+<p align="center"><img alt="Insert_PCB_into_Enclosure" src="docs/images/assembly-3-insert-pcb.jpg" width="700"></p>
 
 ### 4. Connect 6-pin JST GH Cable.
 
-<p align="center"><img alt="Connect_JST_Cable" src="https://github.com/user-attachments/assets/cb314557-cf85-4ab1-a9ef-7a8a2115400f" width="700"></p>
+<p align="center"><img alt="Connect_JST_Cable" src="docs/images/assembly-4-connect-jst.jpg" width="700"></p>
 
 ### 5. Bring display over in position above the PCB.
 
-<p align="center"><img alt="Display_Placement_1" src="https://github.com/user-attachments/assets/120c1d63-db2c-4569-8030-ebec3ec0e074" width="700"></p>
-<p align="center"><img alt="Display_Placement_2" src="https://github.com/user-attachments/assets/8cbffd19-aee5-40a8-b3b6-ce1f91275711" width="700"></p>
+<p align="center"><img alt="Display_Placement_1" src="docs/images/assembly-5-display-placement-1.jpg" width="700"></p>
+<p align="center"><img alt="Display_Placement_2" src="docs/images/assembly-6-display-placement-2.jpg" width="700"></p>
 
 ### 6. Attach the display cover.
 
-<p align="center"><img alt="Attach_Display_Cover" src="https://github.com/user-attachments/assets/800e34a6-3082-4a30-908d-15d8ea018a68" width="700"></p>
+<p align="center"><img alt="Attach_Display_Cover" src="docs/images/assembly-7-attach-cover.jpg" width="700"></p>
 
 ### 7. Secure the assembly from the bottom with the two M3 fasteners.
 
-<p align="center"><img alt="Secure_With_M3_Screws" src="https://github.com/user-attachments/assets/4d94f443-7d26-4a1e-abb5-98dc9f584dc8" width="700"></p>
+<p align="center"><img alt="Secure_With_M3_Screws" src="docs/images/assembly-8-m3-screws.jpg" width="700"></p>
 
 ## Firmware Setup
 _Any Aether devices purchased through [**Syntropy Labs**](https://syntropylabs.io/) are pre-flashed with device firmware and fully tested_
@@ -157,7 +157,7 @@ Once powered, Aether reads the SEN66 and refreshes both the on-device display an
 
 On boot, Aether will expose a temporary setup access point so you can connect it to Wi-Fi through the captive portal flow. The network will appear as **aether-XXXXXX**. 
 
-<p align="center"><img alt="aether-access-point" src="https://github.com/user-attachments/assets/989b05f5-8eb8-44bc-84a7-8de18c8cad2c" width="300"></p> 
+<p align="center"><img alt="aether-access-point" src="docs/images/wifi-access-point.jpg" width="300"></p> 
 
 - If you want **local web UI access**, **network-based ota updates**, or **Home Assistant integration**, connect the device to Wi-Fi during setup.
 - If you do **not** configure Wi-Fi, the device will still work as a standalone monitor **fully offline**.

@@ -13,6 +13,7 @@ display-compatibility.md                   # Notes on alternative e-paper panels
 ├── build.yml                              # PR + weekly compile against latest ESPHome
 ├── release.yml                            # Firmware release on firmware/ pushes to main
 └── pages.yml                              # Deploys www/ + manifests + release binaries
+docs/images/                               # README photos (resized for the web; ~1400 px wide)
 enclosure/                                 # SolidWorks enclosure + assembly files
 firmware/
 ├── LICENSE                                # GPLv3 (covers everything under firmware/)
@@ -287,3 +288,5 @@ This project tracks the **latest ESPHome release**. `release.yml` installs the n
 ## Maintenance Rule
 
 Keep this file, as well as any other markdown documentation, in sync with the actual repo. Update it when repository structure, firmware wiring, or OTA/flash workflows materially change.
+
+README images live in `docs/images/` and are linked by relative path. Resize photos before adding them: about 1400 px wide for images shown at 700 px, 1600 px for the top banner, as progressive sRGB JPEGs of roughly 50-100 KB each. Full-size camera photos (3-4 MB each) make the README slow to load.
