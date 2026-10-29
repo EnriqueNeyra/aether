@@ -60,9 +60,6 @@ esp32:
   framework:
     type: arduino
   toolchain: ${toolchain}
-  # Reclaims the 384 KB the stock 4 MB layout leaves unallocated so the HomeKit
-  # stack fits. See partitions_aether.csv - this breaks OTA from <= 1.0.13.
-  partitions: partitions_aether.csv
 
 logger:
   level: INFO

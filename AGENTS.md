@@ -19,7 +19,6 @@ firmware/
 ├── LICENSE                                # GPLv3 (covers everything under firmware/)
 ├── aether.yaml                            # Main (release) ESPHome config
 ├── aether-dev.yaml                        # Release config + ESPHome network OTA, for development
-├── partitions_aether.csv                  # Custom 4 MB partition table (larger OTA slots)
 ├── components/
 │   ├── aether_epaper/
 │   │   ├── aether_epaper.h                # Display driver, render loop, mode state
@@ -77,7 +76,6 @@ hardware/
 - HTTP OTA update support (no ESPHome network OTA in release builds; see OTA / Update Path)
 - the native API with keyless encryption (`api: encryption:` with no key; a client such as Home Assistant provisions one)
 - the persisted temperature unit preference
-- a custom partition table (`partitions_aether.csv`)
 - the ESP32 build toolchain, selected by the `toolchain` substitution (see ESPHome Version Policy below)
 
 ### Sensor Update and Render Flow
@@ -156,14 +154,7 @@ Beyond that, ESPHome owns WiFi, mDNS, the serial port, and port 80. The componen
 
 ### Reflashing during development
 
-`firmware.factory.bin` written at `0x0` spans the NVS region, so it **erases stored Wi-Fi credentials and HomeKit pairings** every time. Once a device already has the current partition table, flash the app only and leave NVS alone:
-
-```bash
-# preserves Wi-Fi credentials and HomeKit pairing
-esptool --chip esp32c3 --port <port> write-flash 0x10000 firmware.bin
-```
-
-Use the full factory image only for a first flash, a partition table change, or a deliberate wipe.
+NVS (Wi-Fi credentials, settings and HomeKit pairings) sits at the end of flash in ESPHome's stock layout, past the firmware image, so flashing over USB (`esphome run`, `firmware.factory.bin`, or the flasher's Update) keeps it. Only a full erase or a factory reset clears it.
 
 ### Bridge topology (do not collapse back into one accessory)
 
@@ -233,23 +224,18 @@ Requests are served on the ESP-IDF httpd task, not the main loop:
 
 Always edit the `web/` source files, never the generated header.
 
-### Partition table
-
-`firmware/partitions_aether.csv` replaces ESPHome's stock 4 MB Arduino layout. The stock layout gives each OTA slot `0x1C0000` and leaves `0x60000` (384 KB) of flash unallocated; the custom table splits that dead space across `app0`/`app1`, taking each to `0x1F0000`. Without it the HomeKit build overflows the app partition.
-
 ### Flash budget (this is tight - measure before adding anything)
 
-Measured with esphome 2026.2.4 on ESP32-C3:
+Measured with ESPHome 2026.10.1 (PlatformIO toolchain) on ESP32-C3, against ESPHome's stock 4 MB layout (1,835,008-byte app slots):
 
-| Build | Flash | App slot | Notes |
-| ----- | ----- | -------- | ----- |
-| Stock 1.0.12 | 1,758,516 | 1,835,008 (95.8%) | almost full already |
-| + HomeKit, bigger partitions | 2,217,340 | 2,031,616 (109.1%) | **overflows** |
-| + HomeKit, no `esp32_improv` (now `improv_ble`) | 1,785,294 | 2,031,616 (87.9%) | ships |
+| Build | Flash | Notes |
+| ----- | ----- | ----- |
+| `main` 1.0.15, with `improv_ble` | 1,710,282 (93.2%) | |
+| HomeKit, no `improv_ble` | 1,743,424 (95.0%) | this branch |
 
-HomeKit costs ~448 KB (HomeSpan + libsodium + the promoted arduino WiFi/Ethernet/OTA/mDNS libraries). Paying for it meant dropping `improv_ble`, whose Bluedroid BT stack was ~432 KB. Onboarding is unaffected in practice: the WebUSB flashing page provisions over USB via `improv_serial`, and the captive portal AP still works. **Do not re-add `improv_ble` without removing something else of similar size.**
+HomeKit (HomeSpan plus the promoted arduino WiFi/Ethernet/OTA/mDNS libraries) and `improv_ble`'s Bluedroid stack each cost roughly 450 KB, so they don't fit together. Onboarding is unaffected in practice: the USB flashing page provisions over `improv_serial`, and the captive portal AP still works. **Do not re-add `improv_ble` without removing something else of similar size.**
 
-**A partition table change cannot be delivered over OTA.** Devices on 1.0.13 or earlier must be re-flashed once over USB with the factory image. Every release after that OTAs normally again. If you ever change partition sizes again, the same one-time USB re-flash applies.
+Keep ESPHome's stock partition layout. OTA updates can't change a partition table, and a USB update that does moves NVS, which wipes Wi-Fi credentials and settings.
 
 ### OTA / Update Path
 
