@@ -13,8 +13,8 @@
 | `hardware/manufacturing/` | PCB manufacturing outputs, BOM, and centroid files                         |
 | `hardware/datasheets/`    | Reference datasheets used during hardware design                           |
 | `enclosure/`              | SolidWorks enclosure and assembly files                                    |
-| `manifests/`                  | Firmware manifests for OTA and the USB flasher             |
-| `www/`                        | The combined USB flasher and Quick Start Guide site        |
+| `manifests/`                  | Firmware manifests for OTA and WebUSB                      |
+| `www/`                        | The combined WebUSB flasher and Quick Start Guide site     |
 
 ## Contents
 
@@ -31,7 +31,6 @@
   - [Local web UI](#local-web-ui)
   - [Home Assistant & ESPHome API](#home-assistant--esphome-api)
   - [Updates](#updates)
-  - [Security](#security)
 - [License](#license)
 
 ## Features
@@ -111,14 +110,14 @@ _Any Aether devices purchased through [**Syntropy Labs**](https://syntropylabs.i
 #### For a new board or a device that needs recovery:
 
 1. Connect Aether to your computer over USB.
-2. Open the [Aether USB flashing tool](https://aether.syntropylabs.io/) and go to **Firmware & Updates**.
+2. Open the [Aether WebUSB flashing tool](https://aether.syntropylabs.io/) and go to **Firmware & Updates**.
 3. Click **Install Aether firmware** under **Install or Update over USB**.
 4. Keep the page open until flashing is complete.
 5. Let the device boot.
 
 #### For a device that is already set up and just needs newer firmware:
 
-- **Over Wi-Fi (recommended):** open the device's [local web UI](#local-web-ui), go to **Firmware & updates**, and click the update button. Home Assistant offers the same update.
+- **Over Wi-Fi (recommended):** open the device's [local web UI](#local-web-ui), go to **Firmware & updates**, and click **Update**. Home Assistant offers the same update.
 - **Over USB:** follow the steps above. When the connected device is already running Aether firmware, the flasher offers an **update** that keeps your Wi-Fi and settings instead of erasing the device.
 
 _Note: The flashing page in `www/` is built around **ESP Web Tools / Web Serial** and requires desktop **Chrome or Edge**._
@@ -136,14 +135,10 @@ cd aether/firmware
 ```sh
 esphome config aether.yaml
 esphome compile aether.yaml
-esphome run aether.yaml        # flash over USB
+esphome run aether.yaml
 ```
 
-Release firmware deliberately has no network flashing (see [Security](#security)). To flash development builds over Wi-Fi, use `aether-dev.yaml`, which adds ESPHome's network OTA on top of the release config. Flash it over USB once, then iterate over Wi-Fi:
-
-```sh
-esphome run aether-dev.yaml --device <device-ip>
-```
+Release firmware can't be flashed over Wi-Fi. To iterate over Wi-Fi, flash `aether-dev.yaml` over USB once, then use `esphome run aether-dev.yaml --device <device-ip>`.
 
 To try ESPHome's native ESP-IDF toolchain (the default once `toolchain: platformio` is removed in ESPHome 2027.2.0), pass `-s toolchain esp-idf`, e.g. `esphome -s toolchain esp-idf compile aether.yaml`.
 
@@ -161,8 +156,6 @@ On boot, Aether will expose a temporary setup access point so you can connect it
 
 - If you want **local web UI access**, **network-based ota updates**, or **Home Assistant integration**, connect the device to Wi-Fi during setup.
 - If you do **not** configure Wi-Fi, the device will still work as a standalone monitor **fully offline**.
-- The setup network stays up for **10 minutes** after power-up. To bring it back later, hold the side button for 3 seconds on the info screen (this reboots the device), or unplug and replug it.
-- Wi-Fi can also be set up from Home Assistant over **Bluetooth** (Improv). Press the side button once when asked, to authorize it.
 
 Once connected to the access point, you will automatically be redirected to the captive portal. Select your network and enter the password to connect. Once connected to Wi-Fi, the device also hosts its [local web UI](#local-web-ui) at **aether-XXXXXX.local** or the **device's local IP**.
 
@@ -172,7 +165,7 @@ The side / boot button supports multiple actions:
 
 - **Short press (tap, under 1 second):** toggles between the normal dashboard and the info screen
 - **Long press (hold ~3 seconds) from the normal screen:** enters factory reset confirmation
-- **Long press (hold ~3 seconds) again on the reset screen:** confirms the factory reset flow. If not confirmed within 30 seconds, the reset screen cancels itself.
+- **Long press (hold ~3 seconds) again on the reset screen:** confirms the factory reset flow
 - **Long press (hold ~3 seconds) on the info screen while Wi-Fi is not connected:** reboots the device, which brings the setup access point back after offline mode
 
 ### Local web UI
@@ -188,7 +181,7 @@ When Aether is on your network, it serves a local browser-based dashboard direct
 
 Because Aether runs ESPHome, it features a native API over Wi-Fi. This allows for:
 
-- **Automatic Home Assistant Integration:** Aether will automatically appear in Home Assistant integrations dashboard once connected to your network. It exposes all 9 sensor metrics (CO2, temperature, humidity, PM1.0, PM2.5, PM4.0, PM10, VOC index, and NOx index). The API supports encryption without a pre-set key: a Home Assistant version that supports it provisions a unique key on connection, and from then on the API only accepts encrypted connections. A factory reset clears the key; Home Assistant then reports that the device disabled transport encryption. Confirm it, and Home Assistant reconnects and sets the key up again.
+- **Automatic Home Assistant Integration:** Aether will automatically appear in Home Assistant integrations dashboard once connected to your network. It exposes all 9 sensor metrics (CO2, temperature, humidity, PM1.0, PM2.5, PM4.0, PM10, VOC index, and NOx index).
 
 <p align="center">
   <a href="https://my.home-assistant.io/redirect/integrations/">
@@ -200,28 +193,17 @@ Because Aether runs ESPHome, it features a native API over Wi-Fi. This allows fo
   - `GET /api/state` - Returns a JSON object with all current sensor metrics and device status.
   - `POST /api/temp_unit?unit=C|F` - Changes the preferred temperature unit.
   - `POST /api/check_update` - Asks the device to re-check for a firmware update now.
-  - `POST /api/perform_update` - Starts downloading and installing the latest firmware over HTTPS. Returns `409` if no update is available. If an install fails, `/api/state` reports `"install_failed": true`.
-
-  Requests that a browser marks as coming from another website (an `Origin` that doesn't match the device) are rejected with `400` (`forbidden_origin`), so other web pages can't control the device. Scripts and tools that don't send `Origin` work normally.
+  - `POST /api/perform_update` - Triggers the device to immediately begin downloading and installing the latest firmware update over HTTPS (if one is available).
 
 ### Updates
 
 Aether supports more than one update path:
 
-- **Local USB flashing** through the [USB flashing tool](https://aether.syntropylabs.io/) (source located in `www/`)
+- **Local USB flashing** through the [WebUSB flashing tool](https://aether.syntropylabs.io/) (source located in `www/`)
 - **In-device update flow** through the local web UI
 - **Home Assistant** when the device is online
 
-Use the USB flashing page for first-time setup and recovery. Use the local web UI for routine updates on devices that are already deployed. Over-the-air updates come only from the official update server, over HTTPS with certificate verification.
-
-### Security
-
-Aether is designed for a trusted home network, but it avoids handing control to anything else on that network:
-
-- **No network flashing in release firmware.** Firmware can only be installed from the official update server (HTTPS, certificate-verified) or over USB. While the setup access point is up, the captive portal also accepts firmware uploads, as a recovery path for unconfigured devices.
-- **Encrypted Home Assistant API** once Home Assistant provisions a key (see above).
-- **Bluetooth Wi-Fi setup** requires a press of the side button.
-- **Local web UI** endpoints refuse requests from other websites.
+Use the USB flashing page for first-time setup and recovery. Use the local web UI for routine updates on devices that are already deployed.
 
 ## License
 
@@ -230,6 +212,6 @@ Aether is licensed per directory:
 - **Firmware** (`firmware/`): [GNU General Public License v3](firmware/LICENSE). The firmware is built on GPLv3 code (ESPHome's C++ runtime and the GxEPD2 display driver), so it and the firmware binaries built from it are distributed under GPLv3.
 - **Everything else** (hardware, PCB and manufacturing files, enclosure, website, and documentation): [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-nc-sa/4.0/). See [LICENSE](LICENSE).
 
-Third-party components keep their own licenses, including the libraries the firmware is built with and the fonts in `firmware/components/aether_epaper/fonts/` (see its [README](firmware/components/aether_epaper/fonts/README.md)). The display uses the Inter typeface (SIL OFL 1.1) and the Satoshi typeface by the Indian Type Foundry; Satoshi is a trademark of the Indian Type Foundry.
+Third-party components keep their own licenses, including the fonts in `firmware/components/aether_epaper/fonts/` and the libraries the firmware is built with.
 
 [![License: CC BY-NC-SA 4.0](https://licensebuttons.net/l/by-nc-sa/4.0/88x31.png)](http://creativecommons.org/licenses/by-nc-sa/4.0/)
