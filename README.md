@@ -188,7 +188,7 @@ When Aether is on your network, it serves a local browser-based dashboard direct
 
 Because Aether runs ESPHome, it features a native API over Wi-Fi. This allows for:
 
-- **Automatic Home Assistant Integration:** Aether will automatically appear in Home Assistant integrations dashboard once connected to your network. It exposes all 9 sensor metrics (CO2, temperature, humidity, PM1.0, PM2.5, PM4.0, PM10, VOC index, and NOx index). The API supports encryption without a pre-set key: a Home Assistant version that supports it provisions a unique key on connection, and from then on the API only accepts encrypted connections. A factory reset clears the key.
+- **Automatic Home Assistant Integration:** Aether will automatically appear in Home Assistant integrations dashboard once connected to your network. It exposes all 9 sensor metrics (CO2, temperature, humidity, PM1.0, PM2.5, PM4.0, PM10, VOC index, and NOx index). The API supports encryption without a pre-set key: a Home Assistant version that supports it provisions a unique key on connection, and from then on the API only accepts encrypted connections. A factory reset clears the key; Home Assistant then reports that the device disabled transport encryption. Confirm it, and Home Assistant reconnects and sets the key up again.
 
 <p align="center">
   <a href="https://my.home-assistant.io/redirect/integrations/">
