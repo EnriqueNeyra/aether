@@ -20,6 +20,11 @@
 #include <esp_netif.h>
 #include <esp_wifi.h>
 #include <mdns.h>
+#include <esp_random.h>
+#include "bootloader_random.h"
+
+#include <cinttypes>
+#include <cstring>
 
 // sodium_compat.c
 extern "C" int aether_sodium_compat_selftest(void);
@@ -54,6 +59,44 @@ namespace aether
     SpanCharacteristic *voc{nullptr};
     SpanCharacteristic *nox{nullptr};
   };
+
+  namespace
+  {
+    struct SavedSetupCode
+    {
+      char code[9];
+    };
+
+    // HAP disallows repeated digits and the two sequences; HomeSpan halts on them.
+    bool is_valid_setup_code(const char *code)
+    {
+      if (strlen(code) != 8)
+        return false;
+      bool all_same = true;
+      for (int i = 0; i < 8; i++)
+      {
+        if (code[i] < '0' || code[i] > '9')
+          return false;
+        if (code[i] != code[0])
+          all_same = false;
+      }
+      return !all_same && strcmp(code, "12345678") != 0 && strcmp(code, "87654321") != 0;
+    }
+
+    // Uniform over 00000000-99999999: 42 * 10^8 is the largest multiple of
+    // 10^8 below 2^32, so rejecting draws at or above it avoids modulo bias.
+    void generate_setup_code(char out[9])
+    {
+      do
+      {
+        uint32_t r;
+        do
+          r = esp_random();
+        while (r >= 4200000000u);
+        snprintf(out, 9, "%08" PRIu32, r % 100000000u);
+      } while (!is_valid_setup_code(out));
+    }
+  } // namespace
 
   float AetherHomeKit::get_setup_priority() const
   {
@@ -172,6 +215,14 @@ namespace aether
     // each bridged accessory gets its own tile showing its value, and can be
     // picked individually in the Home widget. HomeSpan infers bridge mode from
     // accessory 1 containing nothing but AccessoryInformation.
+    //
+    // Span::init() turned the radio on to seed the RNG, but reclaim_wifi_stack_()
+    // stopped it, and with RF off the ESP32-C3's esp_random() is only
+    // pseudo-random. begin() generates the accessory's long-term Ed25519 keys
+    // and apply_pairing_code_() the setup code and SRP salt, so run both with
+    // the ADC-noise entropy source on. It must be off again before ESPHome
+    // starts Wi-Fi, which happens after this setup() (priority above WIFI).
+    bootloader_random_enable();
     homeSpan.begin(Category::Bridges, accessory_name_, host.c_str(), model_);
 
     snprintf(name_temp_, sizeof(name_temp_), "%s Temperature", accessory_name_);
@@ -223,15 +274,16 @@ namespace aether
     }
 
     apply_pairing_code_();
+    bootloader_random_disable();
 
     snprintf(pairing_code_display_, sizeof(pairing_code_display_), "%.3s-%.2s-%.3s",
-             pairing_code_, pairing_code_ + 3, pairing_code_ + 5);
+             setup_code_, setup_code_ + 3, setup_code_ + 5);
 
     // homeSpan.qrCode is private, so build the X-HM payload from our own HapQR.
     HapQR qr;
     snprintf(qr_payload_, sizeof(qr_payload_), "%s",
-             qr.get(atoi(pairing_code_), setup_id_,
-                    static_cast<uint8_t>(Category::Sensors)));
+             qr.get(atoi(setup_code_), setup_id_,
+                    static_cast<uint8_t>(Category::Bridges)));
 
     // Safe to read unlocked: HomeSpan's poll task does not exist yet.
     refresh_paired_();
@@ -242,25 +294,45 @@ namespace aether
     homeSpan.autoPoll(12288, 1, 0);
 
     started_ = true;
-    ESP_LOGI(TAG, "HomeKit ready on port %u, setup code %s", port_, pairing_code_display_);
+    // The setup code stays off the logs, which anyone on the LAN can stream.
+    ESP_LOGI(TAG, "HomeKit ready on port %u", port_);
   }
 
   void AetherHomeKit::apply_pairing_code_()
   {
-    // setPairingCode() always regenerates SRP verification data, which is
-    // seconds of modular exponentiation. Only pay that when the configured code
-    // actually differs from the one already committed to NVS.
-    const uint32_t desired = esphome::fnv1_hash(pairing_code_);
-    pairing_pref_ = esphome::global_preferences->make_preference<uint32_t>(
-        esphome::fnv1_hash("aether_homekit_pairing_code"));
+    // setPairingCode() regenerates SRP verification data, which is seconds of
+    // modular exponentiation, so only run it when the code changes. The code
+    // itself is kept in preferences so the HomeKit screen can show it after a
+    // reboot.
+    auto pref = esphome::global_preferences->make_preference<SavedSetupCode>(
+        esphome::fnv1_hash("aether_homekit_setup_code"));
+    SavedSetupCode saved{};
+    const bool have_saved = pref.load(&saved) && saved.code[8] == '\0' &&
+                            is_valid_setup_code(saved.code);
 
-    uint32_t stored = 0;
-    if (pairing_pref_.load(&stored) && stored == desired)
+    if (pairing_code_ != nullptr)
+    {
+      snprintf(setup_code_, sizeof(setup_code_), "%s", pairing_code_);
+      if (have_saved && strcmp(saved.code, setup_code_) == 0)
+        return;
+    }
+    else if (have_saved)
+    {
+      memcpy(setup_code_, saved.code, sizeof(setup_code_));
       return;
+    }
+    else
+    {
+      // No code in YAML: give this device its own, so a code shared by every
+      // Aether can't be used to pair someone else's unpaired device first.
+      generate_setup_code(setup_code_);
+    }
 
-    ESP_LOGI(TAG, "Applying new HomeKit pairing code (one-time SRP setup, takes a few seconds)");
-    homeSpan.setPairingCode(pairing_code_);
-    pairing_pref_.save(&desired);
+    ESP_LOGI(TAG, "Applying new HomeKit setup code (one-time SRP setup, takes a few seconds)");
+    homeSpan.setPairingCode(setup_code_);
+    memcpy(saved.code, setup_code_, sizeof(saved.code));
+    pref.save(&saved);
+    esphome::global_preferences->sync();
   }
 
   uint8_t AetherHomeKit::compute_air_quality_(float pm25, float voc, float co2) const
@@ -373,9 +445,13 @@ namespace aether
     {
       ESP_LOGI(TAG, "Advertising _hap._tcp on port %u", port_);
     }
+    else if (err == ESP_ERR_INVALID_ARG)
+    {
+      // Already registered by an earlier connect, which is fine.
+      ESP_LOGD(TAG, "_hap._tcp already advertised on port %u", port_);
+    }
     else
     {
-      // ESP_ERR_INVALID_ARG here means it is already registered, which is fine.
       ESP_LOGW(TAG, "mdns_service_add(_hap._tcp:%u): %s", port_, esp_err_to_name(err));
     }
   }
@@ -436,8 +512,7 @@ namespace aether
     ESP_LOGCONFIG(TAG, "  Accessory: %s (%s %s)", accessory_name_, manufacturer_, model_);
     ESP_LOGCONFIG(TAG, "  HAP port: %u", port_);
     ESP_LOGCONFIG(TAG, "  Setup ID: %s", setup_id_);
-    ESP_LOGCONFIG(TAG, "  Pairing code: %s", pairing_code_display_);
-    ESP_LOGCONFIG(TAG, "  Setup payload: %s", qr_payload_);
+    ESP_LOGCONFIG(TAG, "  Setup code: %s", pairing_code_ != nullptr ? "set in YAML" : "generated for this device");
     ESP_LOGCONFIG(TAG, "  Paired: %s", is_paired() ? "yes" : "no");
     ESP_LOGCONFIG(TAG, "  CO2 alert threshold: %.0f ppm", co2_threshold_);
   }

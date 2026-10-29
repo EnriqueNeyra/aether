@@ -361,12 +361,10 @@ namespace aether
 #ifdef USE_AETHER_HOMEKIT
       if (homekit_ != nullptr && homekit_->is_ready())
       {
-        n = snprintf(p, rem,
-                     ",\"homekit\":{\"enabled\":true,\"paired\":%s,"
-                     "\"code\":\"%.11s\",\"payload\":\"%.23s\"}",
-                     homekit_->is_paired() ? "true" : "false",
-                     homekit_->pairing_code_display(),
-                     homekit_->qr_payload());
+        // The setup code stays on the device screen: this endpoint is open to
+        // anyone on the LAN, who could otherwise pair an unpaired Aether first.
+        n = snprintf(p, rem, ",\"homekit\":{\"enabled\":true,\"paired\":%s}",
+                     homekit_->is_paired() ? "true" : "false");
         advance(n);
       }
       else

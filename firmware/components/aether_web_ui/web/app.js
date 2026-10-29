@@ -36,7 +36,6 @@
     const fwCheckBtn = document.getElementById('fw-check-btn');
 
     const hkBadgeEl = document.getElementById('hk-badge');
-    const hkCodeEl = document.getElementById('hk-code');
     const hkStatusTextEl = document.getElementById('hk-status-text');
 
     const unitButtons = document.querySelectorAll('.unit-btn');
@@ -179,16 +178,16 @@
     function renderHomeKitFromState(data) {
       const hk = data.homekit;
 
+      // Firmware built without HomeKit has no `homekit` key: hide the tab.
+      document.getElementById('tab-btn-hk').hidden = !hk;
+
       if (!hk || !hk.enabled) {
         hkBadgeEl.textContent = 'Unavailable';
         hkBadgeEl.className = 'fw-badge fw-badge--unknown';
-        hkCodeEl.textContent = '———';
         hkStatusTextEl.textContent =
-          'HomeKit is still starting up, or this firmware was built without it.';
+          'HomeKit is still starting up, or failed to start (see the device logs).';
         return;
       }
-
-      hkCodeEl.textContent = hk.code || '———';
 
       if (hk.paired) {
         hkBadgeEl.textContent = 'Paired';

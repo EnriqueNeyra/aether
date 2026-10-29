@@ -501,32 +501,6 @@ h1 {
   margin-top: 8px;
 }
 
-.hk-code-wrap {
-  background: rgba(0,0,0,0.2);
-  border-radius: 10px;
-  padding: 14px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.hk-code-label {
-  font-size: 12px;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-weight: 600;
-}
-
-.hk-code {
-  font-size: 30px;
-  font-weight: 700;
-  color: #fff;
-  letter-spacing: 0.06em;
-  font-variant-numeric: tabular-nums;
-  user-select: all;
-}
-
 .footer {
   margin-top: 20px;
   text-align: right;
@@ -553,7 +527,6 @@ h1 {
   .frame { padding: 16px; }
   .header { flex-direction: column; align-items: flex-start; gap: 16px; }
   .fw-title-row { flex-direction: column; align-items: flex-start; gap: 12px; }
-  .hk-code { font-size: 24px; }
   .shell { margin: 1vh auto; padding: 12px; }
 }
 /* ───────────────────────────────────────────────────────────────────────────
@@ -569,7 +542,6 @@ h1 {
 .firmware-card,
 .metric,
 .tab-buttons,
-.hk-code-wrap,
 .fw-meta {
   -webkit-backdrop-filter: var(--glass-blur);
   backdrop-filter: var(--glass-blur);
@@ -599,7 +571,6 @@ h1 {
 .card,
 .firmware-card,
 .metric,
-.hk-code-wrap,
 .fw-meta {
   background: var(--card-bg);
   border: 1px solid var(--card-border);
@@ -703,15 +674,10 @@ h1 {
   background: var(--card-bg-strong);
 }
 
-.hk-code {
-  letter-spacing: 0.08em;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
-}
-
 /* Where backdrop blur is unavailable, fall back to an opaque fill so text never
    lands directly on the raw colour field. */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .frame, .card, .firmware-card, .metric, .tab-buttons, .hk-code-wrap, .fw-meta {
+  .frame, .card, .firmware-card, .metric, .tab-buttons, .fw-meta {
     background: rgba(18, 22, 32, 0.90);
   }
 }

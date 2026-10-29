@@ -104,7 +104,8 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(CONF_NAME, default="Aether"): cv.string_strict,
         cv.Optional(CONF_MODEL, default="Aether"): cv.string_strict,
         cv.Optional(CONF_MANUFACTURER, default="Syntropy Labs"): cv.string_strict,
-        cv.Optional(CONF_PAIRING_CODE, default="46637726"): _validate_pairing_code,
+        # Omit to have each device generate its own code on first boot.
+        cv.Optional(CONF_PAIRING_CODE): _validate_pairing_code,
         cv.Optional(CONF_SETUP_ID, default="AETH"): _validate_setup_id,
         # HomeSpan's HAP server cannot share port 80 with ESPHome's web_server.
         cv.Optional(CONF_PORT, default=1201): cv.port,
@@ -143,7 +144,8 @@ async def to_code(config):
     cg.add(var.set_accessory_name(config[CONF_NAME]))
     cg.add(var.set_model(config[CONF_MODEL]))
     cg.add(var.set_manufacturer(config[CONF_MANUFACTURER]))
-    cg.add(var.set_pairing_code(config[CONF_PAIRING_CODE]))
+    if CONF_PAIRING_CODE in config:
+        cg.add(var.set_pairing_code(config[CONF_PAIRING_CODE]))
     cg.add(var.set_setup_id(config[CONF_SETUP_ID]))
     cg.add(var.set_port(config[CONF_PORT]))
     cg.add(var.set_co2_threshold(config[CONF_CO2_THRESHOLD]))

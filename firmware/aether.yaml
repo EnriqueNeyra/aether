@@ -248,7 +248,6 @@ aether_homekit:
   pm10: pm10_0
   voc: voc_index
   nox: nox_index
-  pairing_code: "466-37-726"
   setup_id: "AETH"
 
 # ─── Main UI / E-paper render loop ────────────────────────────────────────────

@@ -39,8 +39,8 @@ namespace aether
 
     // ---- Consumed by the e-paper pairing screen and the local web UI ----
 
-    /// Pairing code as stored, e.g. "46637726".
-    const char *pairing_code() const { return pairing_code_; }
+    /// Setup code in use, e.g. "46637726": from YAML, or generated per device.
+    const char *pairing_code() const { return setup_code_; }
 
     /// Pairing code formatted the way the Home app shows it, e.g. "466-37-726".
     const char *pairing_code_display() const { return pairing_code_display_; }
@@ -105,11 +105,13 @@ namespace aether
     const char *accessory_name_{"Aether"};
     const char *model_{"Aether"};
     const char *manufacturer_{"Syntropy Labs"};
-    const char *pairing_code_{"46637726"};
+    // Set only when YAML fixes the code; otherwise each device generates one.
+    const char *pairing_code_{nullptr};
     const char *setup_id_{"AETH"};
     uint16_t port_{1201};
     float co2_threshold_{1000.0f};
 
+    char setup_code_[9]{};
     char pairing_code_display_[12]{};
     char qr_payload_[24]{};
     char serial_number_[24]{};
@@ -130,7 +132,6 @@ namespace aether
     bool paired_{false};
     bool wifi_connected_{false};
 
-    esphome::ESPPreferenceObject pairing_pref_;
   };
 
 } // namespace aether

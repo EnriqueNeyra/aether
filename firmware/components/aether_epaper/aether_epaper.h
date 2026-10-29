@@ -545,8 +545,9 @@ namespace aether
         if (paired)
         {
           aether_epaper_layout::print_left(display, text_x, 92, &Inter_Bold12pt7b, "Paired");
-          aether_epaper_layout::print_left(display, text_x, 116, &Inter_Bold9pt7b, "Scan to add Aether");
-          aether_epaper_layout::print_left(display, text_x, 134, &Inter_Bold9pt7b, "to another home.");
+          // A paired accessory refuses new pairings until it is removed.
+          aether_epaper_layout::print_left(display, text_x, 116, &Inter_Bold9pt7b, "Added to Apple Home.");
+          aether_epaper_layout::print_left(display, text_x, 134, &Inter_Bold9pt7b, "Remove it to re-pair.");
         }
         else
         {
