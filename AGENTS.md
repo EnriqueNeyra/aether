@@ -27,7 +27,8 @@ firmware/
 │   ├── aether_homekit/
 │   │   ├── __init__.py                    # ESPHome codegen + HomeSpan lib pin
 │   │   ├── aether_homekit.h               # HomeSpan-free public interface (pimpl)
-│   │   └── aether_homekit.cpp             # The only TU that includes HomeSpan.h
+│   │   ├── aether_homekit.cpp             # The only TU that includes HomeSpan.h
+│   │   └── sodium_compat.c                # libsodium functions HomeSpan needs that ESPHome's copy omits
 │   └── aether_web_ui/
 │       ├── __init__.py                    # ESPHome codegen + HTML inlining
 │       ├── aether_web_ui.h                # AsyncWebHandler + JSON/API endpoints
@@ -127,7 +128,7 @@ Display behavior worth knowing before changing it:
 
 Two non-obvious things are required to make HomeSpan build inside ESPHome. Both live in `aether_homekit/__init__.py`.
 
-**1. libsodium.** HomeSpan's `HAP.cpp` needs `sodium.h` for Ed25519/Curve25519/ChaCha20-Poly1305. ESP-IDF 5.5 dropped libsodium as a built-in component, so it is pulled from the Espressif registry via `add_idf_component(name="espressif/libsodium", ref="^1.0.20")`.
+**1. libsodium.** HomeSpan's `HAP.cpp` needs libsodium for Ed25519/Curve25519/ChaCha20-Poly1305. A build may contain only one libsodium, and API encryption already links ESPHome's trimmed copy through the `noise` component, so `aether_homekit` auto-loads `noise` rather than adding `espressif/libsodium` (two copies fail to link on duplicate symbols). ESPHome's copy omits four functions HomeSpan calls: `crypto_sign_keypair`, `crypto_sign_detached`, `crypto_sign_verify_detached` and `crypto_box_keypair`. `sodium_compat.c` supplies them, adapted from libsodium 1.0.21 on top of internals ESPHome's copy compiles, and `setup()` checks them against RFC 8032 and RFC 7748 test vectors, disabling HomeKit if they don't match. If ESPHome's copy ever compiles those functions itself, the link fails on duplicates: delete `sodium_compat.c` then.
 
 **2. arduino library include paths.** ESPHome builds arduino-esp32 as an IDF component, so the bundled arduino libraries that `HomeSpan.h` reaches (`WiFi.h`, `ETH.h`, `ArduinoOTA.h`, `ESPmDNS.h`, ...) get promoted to PlatformIO *project* libraries. PlatformIO then compiles each one without its siblings' include paths, producing a cascade of failures - `WiFi` cannot find `Network.h`, `Ethernet` cannot find `SPI.h`, and so on. `_ARDUINO_LIB_INCLUDES` puts those paths back with explicit `-I` flags. Without HomeSpan none of these libraries appear in the dependency graph at all, which is why the stock build never needed this.
 
@@ -181,7 +182,11 @@ Every bridged accessory needs its own `AccessoryInformation` service, defined *f
 
 ### Pairing code
 
-`setPairingCode()` regenerates SRP verification data every call, which costs seconds. The component hashes the configured code into ESPHome preferences and only re-applies it when it actually changes. Disallowed codes are rejected at config-validation time rather than at runtime, where HomeSpan would halt the program.
+Without `pairing_code` in YAML (the default), each device generates a uniform random 8-digit setup code on first boot, skipping the codes HAP disallows, and stores it in ESPHome preferences (`aether_homekit_setup_code`). A shared code would let anyone on the LAN pair someone else's unpaired Aether first. `setPairingCode()` regenerates SRP verification data, which costs seconds, so it only runs when the code changes. A YAML `pairing_code` fixes the code instead; disallowed codes are rejected at config validation, where HomeSpan would otherwise halt at runtime.
+
+The code is shown only on the e-paper HomeKit screen: `/api/state` and the logs, which anyone on the LAN can read, never include it.
+
+`reclaim_wifi_stack_()` stops the radio that `Span::init()` started as an entropy source, and with RF off the ESP32-C3's RNG is only pseudo-random. `setup()` therefore wraps `homeSpan.begin()` (long-term Ed25519 keys) and `apply_pairing_code_()` (setup code, SRP salt) in `bootloader_random_enable()`/`bootloader_random_disable()`. It must be off before ESPHome starts Wi-Fi, which the setup priority guarantees.
 
 ### Temperature Unit Preference
 
@@ -199,7 +204,7 @@ Internally, temperatures stay in Celsius. The display converts at render time, a
 `aether_web_ui` registers an `AsyncWebHandler` on the ESPHome web server and serves:
 
 - `GET /` or `/index.html` - the inlined device dashboard (yielded to the captive portal's Wi-Fi form while the setup AP's portal is active)
-- `GET /api/state` - JSON state for metrics, firmware version, temp unit, update status, and (when built with HomeKit) a `homekit` object of `{enabled, paired, code, payload}`
+- `GET /api/state` - JSON state for metrics, firmware version, temp unit, update status, and (when built with HomeKit) a `homekit` object of `{enabled, paired}`
 - `POST /api/perform_update` - starts the HTTP update flow
 - `POST /api/check_update` - re-checks the OTA manifest
 - `POST /api/temp_unit?unit=C|F` - changes the temperature unit select
@@ -330,7 +335,7 @@ This project tracks the **latest ESPHome release**. `release.yml` installs the n
 - GitHub disables scheduled workflows after 60 days without repository activity. If the weekly run stops, re-enable it in the Actions tab.
 - Treat ESPHome deprecation warnings as must-fix. They name the release that removes the feature, and `build.yml` surfaces them as annotations and in the job summary.
 - Build locally with the newest ESPHome before changing firmware. The PlatformIO toolchain needs Python 3.10-3.14; ESPHome itself supports 3.12-3.14.
-- Toolchain migration: ESPHome removes `toolchain: platformio` in 2027.2.0. On ESPHome 2026.10.0 the esp-idf toolchain fails: Adafruit GFX's `library.properties` dependency on Adafruit BusIO isn't resolved. The fix (esphome/esphome#21317) is milestoned for 2026.10.1, and this project builds with esp-idf on ESPHome `dev` with that fix. Once the esp-idf CI job is green on a stable release, set the `toolchain` substitution default in `aether.yaml` to `esp-idf`, and drop `platformio_options.lib_ldf_mode`; the native toolchain ignores it and warns. The gating job then builds esp-idf automatically. Point the early-warning job at `platformio`, or drop it.
+- Toolchain migration: ESPHome removes `toolchain: platformio` in 2027.2.0. On ESPHome 2026.10.0 the esp-idf toolchain fails: Adafruit GFX's `library.properties` dependency on Adafruit BusIO isn't resolved. The fix (esphome/esphome#21317) is milestoned for 2026.10.1, and this project builds with esp-idf on ESPHome `dev` with that fix. Once the esp-idf CI job is green on a stable release, set the `toolchain` substitution default in `aether.yaml` to `esp-idf`, and drop `platformio_options.lib_ldf_mode`; the native toolchain ignores it and warns. The gating job then builds esp-idf automatically. Point the early-warning job at `platformio`, or drop it. `aether_homekit` builds only with PlatformIO for now: `_ARDUINO_LIB_INCLUDES` uses `$PROJECT_PACKAGES_DIR`, and under esp-idf HomeSpan can't find `ESPmDNS.h`, `ArduinoOTA.h` or `DNSServer.h`. Make it build with esp-idf before the switch.
 
 ## Codebase Conventions
 
@@ -368,7 +373,7 @@ This project tracks the **latest ESPHome release**. `release.yml` installs the n
 
 - `firmware/` is GPLv3 (`firmware/LICENSE`) because the firmware is built on GPLv3 code (ESPHome's C++ runtime, GxEPD2). Anything added to the firmware build must be GPLv3-compatible (e.g. MIT, BSD, Apache-2.0, LGPL, GPLv3). Never add non-commercial or proprietary code to it.
 - Everything else (hardware, enclosure, `www/`, manifests, docs) is CC BY-NC-SA 4.0; see the root `LICENSE`.
-- Third-party assets keep their own licenses: the Inter (SIL OFL 1.1) and Satoshi (Indian Type Foundry, Fontshare terms) fonts in `firmware/components/aether_epaper/fonts/` (see its README), and ESP Web Tools (Apache-2.0) and Inter in `www/vendor/`. Don't commit Satoshi font files; only the generated logo-subset header is in the repo.
+- Third-party assets keep their own licenses: the Inter (SIL OFL 1.1) and Satoshi (Indian Type Foundry, Fontshare terms) fonts in `firmware/components/aether_epaper/fonts/` (see its README), ESP Web Tools (Apache-2.0) and Inter in `www/vendor/`, and `firmware/components/aether_homekit/sodium_compat.c`, adapted from libsodium (ISC). Don't commit Satoshi font files; only the generated logo-subset header is in the repo.
 
 ## Maintenance Rule
 
