@@ -55,6 +55,9 @@ esp32:
   framework:
     type: arduino
   toolchain: platformio
+  # Reclaims the 384 KB the stock 4 MB layout leaves unallocated so the HomeKit
+  # stack fits. See partitions_aether.csv - this breaks OTA from <= 1.0.13.
+  partitions: partitions_aether.csv
 
 logger:
   level: INFO
@@ -130,8 +133,12 @@ binary_sensor:
               }
 captive_portal:
 improv_serial:
-esp32_improv:
-  authorizer: none
+
+# NOTE: esp32_improv (Bluetooth Wi-Fi provisioning) was removed to make room for
+# the HomeKit stack. It pulled in the full Bluedroid BT stack, ~432 KB of flash,
+# which is more than HomeKit costs. Onboarding is unaffected in practice: the
+# WebUSB flashing page provisions over USB via improv_serial, and the captive
+# portal AP still works. Re-adding it will overflow the app partition.
 
 # Web server automatically registers mDNS _http._tcp on port 80
 web_server:
@@ -144,7 +151,7 @@ external_components:
   - source:
       type: local
       path: components
-    components: [aether_web_ui]
+    components: [aether_web_ui, aether_homekit]
 
 # ─── Buses ─────────────────────────────────────────────────────────────────────
 
@@ -212,6 +219,22 @@ aether_web_ui:
   nox: nox_index
   fw_update: aether_fw_update
   temp_unit_switch: temp_unit_select
+  homekit: aether_homekit_id
+
+# ── Apple HomeKit (HomeSpan / native HAP, no bridge or Home Assistant) ─────────
+# PM1.0 and PM4.0 are absent on purpose: HAP defines no characteristic for them.
+aether_homekit:
+  id: aether_homekit_id
+  name: "Aether"
+  co2: co2
+  temp: temp
+  rh: rh
+  pm25: pm2_5
+  pm10: pm10_0
+  voc: voc_index
+  nox: nox_index
+  pairing_code: "466-37-726"
+  setup_id: "AETH"
 
 # ─── Main UI / E-paper render loop ────────────────────────────────────────────
 
@@ -219,6 +242,12 @@ interval:
   - interval: 500ms
     then:
       - lambda: |-
+          aether::aether_epaper::set_homekit_state(
+            id(aether_homekit_id)->pairing_code_display(),
+            id(aether_homekit_id)->qr_payload(),
+            id(aether_homekit_id)->is_ready(),
+            id(aether_homekit_id)->is_paired()
+          );
           aether::aether_epaper::tick_and_draw(
             id(co2).state,
             id(temp).state,

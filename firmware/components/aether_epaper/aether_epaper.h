@@ -11,6 +11,7 @@
 
 // ESPHome includes
 #include "esphome/core/application.h"
+#include "esphome/core/defines.h"
 #include "esphome/components/wifi/wifi_component.h"
 
 // Layout and Fonts
@@ -48,6 +49,9 @@ namespace aether
       MODE_BOOT,
       MODE_NORMAL,
       MODE_INFO,
+#ifdef USE_AETHER_HOMEKIT
+      MODE_HOMEKIT,
+#endif
       MODE_RESET
     };
 
@@ -57,6 +61,17 @@ namespace aether
     static uint8_t g_boot_full_refreshes = 0;
     static uint8_t g_boot_frame = 0;
     static int8_t g_last_info_wifi_state = -1;
+#ifdef USE_AETHER_HOMEKIT
+    // Plain snapshot of HomeKit pairing state, pushed in from the render loop.
+    // Deliberately not a pointer to the HomeKit component: including the
+    // HomeSpan headers here drags the whole HAP/WiFi library tree into this
+    // translation unit and breaks PlatformIO's library dependency resolution.
+    static const char *g_hk_code = nullptr;
+    static const char *g_hk_payload = nullptr;
+    static bool g_hk_ready = false;
+    static bool g_hk_paired = false;
+    static int8_t g_last_homekit_paired = -1;
+#endif
     static unsigned long g_last_normal_render_ms = 0;
     static unsigned long g_last_boot_frame_ms = 0;
     static unsigned long g_boot_start_ms = 0;
@@ -412,6 +427,66 @@ namespace aether
       g_last_info_wifi_state = connected ? 1 : 0;
     }
 
+#ifdef USE_AETHER_HOMEKIT
+    // Full-screen pairing card: setup QR on the left, code and status on the
+    // right. Kept off the Device Information screen because that layout is
+    // already a fixed two-QR grid with no room for a third card.
+    inline void render_homekit(bool full)
+    {
+      const bool ready = g_hk_ready && g_hk_code != nullptr && g_hk_payload != nullptr;
+      const bool paired = g_hk_paired;
+
+      render_paged(full, [ready, paired]()
+                   {
+        display.fillScreen(GxEPD_WHITE);
+        display.setTextColor(GxEPD_BLACK);
+
+        aether_epaper_layout::print_centered(display, display.width() / 2, 34,
+                                             &Inter_Bold18pt7b, "HomeKit Setup");
+        aether_epaper_layout::draw_divider(display, 128, 288, 46);
+
+        if (!ready)
+        {
+          aether_epaper_layout::print_centered(display, display.width() / 2, 120,
+                                               &Inter_Bold12pt7b, "Starting HomeKit...");
+          return;
+        }
+
+        // Adafruit GFX wraps to x=0 rather than clipping, which would drop
+        // overflowing text on top of the QR card. Every string below is sized
+        // to fit the text column, but fail safe if one ever changes.
+        display.setTextWrap(false);
+
+        // QR card, left half: 8px padding + 29 modules * 5px = 161px box.
+        static constexpr int qr_scale = 5;
+        static constexpr int qr_padding = 8;
+        draw_info_qr_card(20, 62, g_hk_payload, qr_scale, qr_padding);
+
+        // Text column, right half. 416 - 196 = 220px of usable width, which is
+        // why the setup code uses the 12pt font (141px) and not the 18pt
+        // tabular one (216px, only 4px of margin).
+        const int text_x = 196;
+        if (paired)
+        {
+          aether_epaper_layout::print_left(display, text_x, 92, &Inter_Bold12pt7b, "Paired");
+          aether_epaper_layout::print_left(display, text_x, 116, &Inter_Bold9pt7b, "Scan to add Aether");
+          aether_epaper_layout::print_left(display, text_x, 134, &Inter_Bold9pt7b, "to another home.");
+        }
+        else
+        {
+          aether_epaper_layout::print_left(display, text_x, 92, &Inter_Bold9pt7b, "Scan in the Home app");
+          aether_epaper_layout::print_left(display, text_x, 110, &Inter_Bold9pt7b, "to add Aether.");
+        }
+
+        aether_epaper_layout::print_left(display, text_x, 170, &Inter_Bold9pt7b, "Setup code");
+        aether_epaper_layout::print_left(display, text_x, 198, &Inter_Bold12pt7b, g_hk_code);
+
+        display.setTextWrap(true); });
+
+      g_last_homekit_paired = paired ? 1 : 0;
+    }
+#endif
+
     inline void render_reset(bool full)
     {
       render_paged(full, []()
@@ -444,6 +519,11 @@ namespace aether
       case MODE_INFO:
         render_info(full);
         break;
+#ifdef USE_AETHER_HOMEKIT
+      case MODE_HOMEKIT:
+        render_homekit(full);
+        break;
+#endif
       case MODE_RESET:
         render_reset(full);
         break;
@@ -451,11 +531,41 @@ namespace aether
     }
 
     // --- Public API ---
+#ifdef USE_AETHER_HOMEKIT
+    /// Pushed in from the YAML render loop each tick. `code` and `payload` must
+    /// point at storage that outlives the call (the HomeKit component's own
+    /// buffers do).
+    inline void set_homekit_state(const char *code, const char *payload,
+                                  bool ready, bool paired)
+    {
+      g_hk_code = code;
+      g_hk_payload = payload;
+      g_hk_ready = ready;
+      g_hk_paired = paired;
+    }
+#endif
+
     inline void on_short_press()
     {
       if (g_display_mode == MODE_BOOT)
         return;
-      g_display_mode = (g_display_mode == MODE_NORMAL) ? MODE_INFO : MODE_NORMAL;
+
+      // Normal -> Device Information -> HomeKit Setup -> Normal.
+      // From the reset screen a short press still cancels back to Normal.
+      switch (g_display_mode)
+      {
+      case MODE_NORMAL:
+        g_display_mode = MODE_INFO;
+        break;
+#ifdef USE_AETHER_HOMEKIT
+      case MODE_INFO:
+        g_display_mode = MODE_HOMEKIT;
+        break;
+#endif
+      default:
+        g_display_mode = MODE_NORMAL;
+        break;
+      }
       redraw(true);
     }
 
@@ -469,6 +579,12 @@ namespace aether
           esphome::App.safe_reboot();
         return false;
       }
+#ifdef USE_AETHER_HOMEKIT
+      // Informational screen like MODE_INFO: don't let a long press here drop
+      // the user into the factory reset flow by surprise.
+      if (g_display_mode == MODE_HOMEKIT)
+        return false;
+#endif
       if (g_display_mode == MODE_RESET)
         return true;
       g_display_mode = MODE_RESET;
@@ -536,6 +652,16 @@ namespace aether
         if (current_wifi_state != g_last_info_wifi_state)
           render_info(true);
       }
+
+#ifdef USE_AETHER_HOMEKIT
+      // Repaint when pairing completes so the screen stops advertising setup.
+      if (g_display_mode == MODE_HOMEKIT)
+      {
+        const int8_t paired = (g_hk_ready && g_hk_paired) ? 1 : 0;
+        if (paired != g_last_homekit_paired)
+          render_homekit(true);
+      }
+#endif
     }
 
   } // namespace aether_epaper

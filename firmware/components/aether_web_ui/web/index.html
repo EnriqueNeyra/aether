@@ -26,6 +26,7 @@
       <div class="tabs">
         <div class="tab-buttons">
           <button class="tab-btn tab-btn--active" data-tab="env">Environment</button>
+          <button class="tab-btn" data-tab="hk">HomeKit</button>
           <button class="tab-btn" data-tab="fw">Firmware &amp; updates</button>
         </div>
 
@@ -46,6 +47,45 @@
               <div class="metrics-grid" id="metrics"></div>
               <div class="chip-row">
                 <div class="chip" id="chip-last-updated">Last updated: —</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- HomeKit tab -->
+          <div class="tab-panel" id="tab-hk">
+            <div class="firmware-card">
+              <div class="firmware-inner">
+                <div class="fw-pill">
+                  <div class="fw-pill-dot"></div>
+                  <span>HomeKit</span>
+                </div>
+
+                <div class="fw-title-row">
+                  <h2 class="fw-title">Apple Home</h2>
+                  <div id="hk-badge" class="fw-badge fw-badge--unknown">Checking…</div>
+                </div>
+
+                <p class="fw-sub">
+                  Aether pairs directly with Apple Home over Wi-Fi — no hub,
+                  bridge or Home Assistant needed. In the Home app tap
+                  <strong>+ &rarr; Add Accessory &rarr; More options…</strong>,
+                  pick Aether, then enter the setup code below. You can also
+                  press the side button twice to show a scannable code on the
+                  device screen.
+                </p>
+
+                <div class="hk-code-wrap">
+                  <div class="hk-code-label">Setup code</div>
+                  <div class="hk-code" id="hk-code">———</div>
+                </div>
+
+                <div class="fw-meta">
+                  <span>Exposed: <strong>Temperature, Humidity, CO<sub>2</sub>, Air Quality, PM2.5, PM10, VOC, NOx</strong></span>
+                </div>
+
+                <div class="fw-status-text" id="hk-status-text">
+                  Reading HomeKit status from the device…
+                </div>
               </div>
             </div>
           </div>
