@@ -349,12 +349,6 @@ button.nav-link.active {
   color: var(--text-main);
 }
 
-.step-aside {
-  color: var(--text-muted);
-  font-size: 0.95rem;
-  margin-top: 8px;
-}
-
 .note {
   margin-top: 24px;
   padding: 16px;
@@ -908,21 +902,15 @@ button.nav-link.active {
   padding-top: 8px;
 }
 
-/* ESP Web Tools install button. The <button slot="activate"> and the
-   unsupported / not-allowed messages are light-DOM children, so they are
-   styled here. Until the element is defined, hide them to avoid a flash of
-   the wrong state. */
+/* ESP Web Tools install button. The <button slot="activate"> is a light-DOM
+   child, so it is styled here. Until the element is defined, hide it to avoid
+   a flash of the unstyled button. */
 esp-web-install-button {
   display: block;
 }
 
 esp-web-install-button:not(:defined) {
   visibility: hidden;
-}
-
-esp-web-install-button:not(:defined) > [slot="unsupported"],
-esp-web-install-button:not(:defined) > [slot="not-allowed"] {
-  display: none;
 }
 
 .install-btn {
@@ -965,17 +953,6 @@ esp-web-install-button:not(:defined) > [slot="not-allowed"] {
   color: rgba(255, 255, 255, 0.5);
   box-shadow: none;
   cursor: not-allowed;
-}
-
-.install-msg {
-  display: block;
-  font-size: 13px;
-  line-height: 1.5;
-  color: #fca5a5;
-  background: rgba(239, 68, 68, 0.08);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  border-radius: 10px;
-  padding: 10px 12px;
 }
 
 .warning-card {

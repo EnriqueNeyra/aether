@@ -85,17 +85,6 @@
             <li>Connect to it. A setup portal should automatically open.</li>
             <li>Select your home Wi-Fi network and enter the password.</li>
           </ol>
-          <p class="step-aside">If you set it up from Home Assistant over Bluetooth instead, press the side button once
-            when asked.</p>
-          <div class="note">
-            <svg class="icon" viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true"
-              focusable="false"><path fill-rule="evenodd"
-                d="M12 2.5a9.5 9.5 0 1 1 0 19 9.5 9.5 0 1 1 0-19zM12 6.5a1.25 1.25 0 1 1 0 2.5 1.25 1.25 0 1 1 0-2.5zM11 10.75h2V17h-2z" /></svg>
-            <p><strong>Note:</strong> The setup network stays on for 10 minutes after power-up. If Wi-Fi isn't
-              configured by then, Aether keeps working offline. To bring the setup network back, hold the side button
-              for 3 seconds on the Device Information screen (this reboots the device), or unplug it and plug it back
-              in.</p>
-          </div>
         </div>
       </section>
 
@@ -159,20 +148,11 @@
               </div>
             </li>
             <li>
-              <div class="action-badge">Long Press (3s+)</div>
-              <div class="action-details">
-                <h4>Restart Setup Network</h4>
-                <p>On the Device Information screen, while Aether isn't connected to Wi-Fi, hold for 3 seconds to
-                  reboot the device and turn the setup network back on.</p>
-              </div>
-            </li>
-            <li>
               <div class="action-badge warning">Long Press (3s+)</div>
               <div class="action-details">
                 <h4>Factory Reset</h4>
-                <p>From the dashboard, hold for 3 seconds to initiate a factory reset, then hold again for 3s to
-                  confirm. Press once to cancel; if you don't confirm within 30 seconds, the reset is cancelled
-                  automatically.</p>
+                <p>Hold for 3 seconds to initiate a factory reset, then hold again for 3s to
+                  confirm.</p>
               </div>
             </li>
           </ul>
@@ -277,18 +257,8 @@
               d="M4.37 17.37a1.6 1.6 0 0 0 2.26 2.26l6.15-6.15a5 5 0 0 0 6.7-6.7l-3 3-2.26-2.26 3-3a5 5 0 0 0-6.7 6.7z" /></svg>
           Need Help?</h2>
         <div class="card">
-          <p>Most problems can be fixed by reinstalling the firmware over USB. Connect Aether to a computer, open the
-            <strong>Firmware &amp; Updates</strong> tab above, and click <strong>Install Aether firmware</strong>:</p>
-          <ul class="step-list mt-4">
-            <li>If the device is stuck in a boot loop or isn't running Aether firmware, the flasher erases it and
-              installs a fresh image.</li>
-            <li>If it's running an older version of Aether, you'll be offered <strong>Update</strong>, which keeps your
-              settings.</li>
-            <li>If it's already on the latest version, the menu offers <strong>Erase User Data</strong> to wipe its
-              settings.</li>
-          </ul>
-          <p class="mt-4">To factory reset without a computer, hold the side button for 3 seconds, then hold it for 3
-            seconds again to confirm.</p>
+          <p>If you encounter any persistent issues, you can perform a full recovery using the <strong>Install
+              Aether firmware</strong> button in the Firmware &amp; Updates tab above.</p>
           <p class="mt-4">For full documentation, advanced configuration, or to report an issue, please visit the <a
               href="https://github.com/enriqueneyra/aether" class="text-link" target="_blank" rel="noopener">Aether
               GitHub Repository</a>.</p>
@@ -319,7 +289,7 @@
           </div>
           <div class="status-chip">
             <span class="status-dot"></span>
-            <span>Web Serial</span>
+            <span>WebUSB</span>
           </div>
         </div>
 
@@ -357,10 +327,6 @@
             <div class="file-row">
               <esp-web-install-button manifest="manifest.json">
                 <button type="button" slot="activate" class="install-btn">Install Aether firmware</button>
-                <span slot="unsupported" class="install-msg">Your browser doesn't support Web Serial, so it can't
-                  flash Aether. Use desktop Chrome or Edge.</span>
-                <span slot="not-allowed" class="install-msg">Flashing needs a secure connection. Open this page over
-                  HTTPS (https://aether.syntropylabs.io/) and try again.</span>
               </esp-web-install-button>
             </div>
           </div>
@@ -371,9 +337,8 @@
                 <div class="action-title">Update over Wi-Fi</div>
                 <div class="action-desc">
                   Already set up and on your network? No cable needed. Open the device's local dashboard (its address
-                  is on the Device Information screen), go to <strong>Firmware &amp; updates</strong>, and click the
-                  update button (it shows <strong>Update to</strong> and the new version). Home Assistant offers the
-                  same update.
+                  is on the Device Information screen), go to <strong>Firmware &amp; updates</strong>, and click
+                  <strong>Update</strong>. Home Assistant offers the same update.
                 </div>
               </div>
               <div class="badge badge--warn">Update</div>
@@ -387,7 +352,7 @@
         </div>
 
         <div class="notes" style="margin-top: 16px; text-align: right;">
-          Requires desktop Chrome or Edge (Web Serial). Do not unplug the device during flashing.
+          Works best in Chrome or Edge with WebUSB enabled. Do not unplug the device during flashing.
         </div>
       </div>
     </div>
