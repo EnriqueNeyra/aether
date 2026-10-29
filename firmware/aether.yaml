@@ -1,5 +1,5 @@
 substitutions:
-  fw_version: "1.0.14"
+  fw_version: "1.0.15"
   # ESPHome removes the platformio toolchain in 2027.2.0. The native esp-idf
   # toolchain needs the ESPHome fix that resolves Adafruit GFX's BusIO
   # dependency (esphome#21317, due in 2026.10.1). CI builds both toolchains;
