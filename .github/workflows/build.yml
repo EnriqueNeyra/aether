@@ -1,0 +1,122 @@
+name: Build Firmware
+
+# Release builds always install the newest ESPHome, so an ESPHome release can
+# break main without any change here. This workflow compiles every PR and runs
+# weekly against the latest ESPHome so that shows up before a release does.
+# GitHub disables scheduled workflows after 60 days without repository
+# activity; re-enable it from the Actions tab if that happens.
+
+on:
+  pull_request:
+  schedule:
+    - cron: "0 9 * * 1" # Mondays 09:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compile:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Gating: exactly what release.yml builds (the YAML's default
+          # toolchain). Make this the required status check on main.
+          - name: Release config (ESPHome stable)
+            esphome: stable
+            toolchain: ""
+            experimental: false
+          # Early warnings: they report problems as annotations without
+          # failing the check.
+          - name: esp-idf toolchain (ESPHome stable)
+            esphome: stable
+            toolchain: esp-idf
+            experimental: true
+          - name: Release config (ESPHome beta)
+            esphome: beta
+            toolchain: ""
+            experimental: true
+    env:
+      TOOLCHAIN_ARGS: ${{ matrix.toolchain && format('-s toolchain {0}', matrix.toolchain) || '' }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - name: Install ESPHome
+        run: |
+          python -m pip install --upgrade pip
+          if [ "${{ matrix.esphome }}" = "beta" ]; then
+            # Pin the newest release including pre-releases; `pip --pre` would
+            # also pull pre-release versions of every dependency.
+            python -m pip install packaging
+            VERSION="$(python - <<'PY'
+          import json
+          import urllib.request
+          from packaging.version import Version
+
+          with urllib.request.urlopen("https://pypi.org/pypi/esphome/json") as resp:
+              releases = json.load(resp)["releases"]
+          print(max(Version(v) for v, files in releases.items()
+                    if files and not all(f.get("yanked") for f in files)))
+          PY
+            )"
+            python -m pip install --upgrade "esphome==${VERSION}"
+          else
+            python -m pip install --upgrade esphome
+          fi
+          esphome version
+
+      - name: Validate configuration
+        working-directory: firmware
+        run: |
+          read -r -a args <<< "${TOOLCHAIN_ARGS}"
+          esphome "${args[@]}" config aether.yaml > /dev/null
+          esphome "${args[@]}" config aether-dev.yaml > /dev/null
+
+      - name: Compile
+        id: compile
+        continue-on-error: ${{ matrix.experimental }}
+        working-directory: firmware
+        run: |
+          set -o pipefail
+          read -r -a args <<< "${TOOLCHAIN_ARGS}"
+          esphome "${args[@]}" compile aether.yaml 2>&1 | tee build.log
+
+      - name: Report early-warning failure
+        if: steps.compile.outcome == 'failure'
+        run: |
+          echo "::warning title=${{ matrix.name }}::Compile failed; see the Compile step log. This job does not gate merges."
+          echo "### ${{ matrix.name }}: compile failed (non-gating)" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Report ESPHome deprecations
+        if: always()
+        working-directory: firmware
+        run: |
+          # ESPHome names the release that removes each deprecated option or
+          # API, so surface them on every run instead of waiting for the break.
+          test -f build.log || exit 0
+          sed 's/\x1b\[[0-9;]*[mK]//g' build.log \
+            | grep -E "^WARNING .*(deprecated|[Rr]emoved in)|warning: .*deprecated" \
+            | sort -u > deprecations.txt || true
+          if [ -s deprecations.txt ]; then
+            {
+              echo "### ESPHome deprecations (${{ matrix.name }})"
+              echo
+              sed 's/^WARNING /- /' deprecations.txt
+            } >> "$GITHUB_STEP_SUMMARY"
+            while IFS= read -r line; do
+              echo "::warning title=ESPHome deprecation::${line#WARNING }"
+            done < deprecations.txt
+          fi

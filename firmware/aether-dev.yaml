@@ -1,0 +1,8 @@
+# Development build: the release config plus ESPHome's network OTA, so
+# `esphome run aether-dev.yaml --device <ip>` can flash a device over Wi-Fi.
+# Never release this: it lets anyone on the LAN upload firmware.
+packages:
+  aether: !include aether.yaml
+
+ota:
+  - platform: esphome

@@ -1,6 +1,6 @@
 # Aether
 
-<img width="4285" height="2857" alt="A6700222" src="https://github.com/user-attachments/assets/8be34c35-cbe4-4628-9b6f-72ee45ff123e" />
+<img width="1600" height="1067" alt="Aether air quality monitor showing its e-paper dashboard" src="docs/images/aether-hero.jpg" />
 
 ### Aether is a comprehensive air quality monitor by [**Syntropy Labs**](https://syntropylabs.io/products/aether-air-quality-monitor) built around an ESP32-C3, a Sensirion SEN66 sensor, and a 3.7" e-paper display. It measures **CO2, Temperature, Humidity, PM1.0, PM2.5, PM4.0, PM10, VOC index, and NOx index**, and exposes those readings on-device, on the local network, and through Home Assistant.
 
@@ -31,7 +31,7 @@
   - [Local web UI](#local-web-ui)
   - [Apple HomeKit](#apple-homekit)
   - [Home Assistant & ESPHome API](#home-assistant--esphome-api)
-  - [Updates](#pdates)
+  - [Updates](#updates)
 - [License](#license)
 
 ## Features
@@ -57,7 +57,9 @@ To build one Aether unit, the following core parts are needed:
 | **3D-printed enclosure parts**             | [`enclosure/`](https://github.com/EnriqueNeyra/aether/tree/main/enclosure) |
 | **2x M3 x 6 mm countersunk screws + nuts** | [Screws](https://amzn.to/3SKvOgg) / [Nuts](https://amzn.to/44jUIG1) |
 
-<p align="center"><img alt="A6700230" src="https://github.com/user-attachments/assets/9861c7f3-c20a-4694-845d-c945b032f5fe" width="700"></p>
+<sub>As an Amazon Associate I earn from qualifying purchases.</sub>
+
+<p align="center"><img alt="Aether parts laid out before assembly" src="docs/images/aether-front.jpg" width="700"></p>
 
 ### Alternative Display Compatibility
 
@@ -75,32 +77,32 @@ High-level assembly flow:
 
 ### 1. Press-fit the SEN66 into the enclosure body.
 
-<p align="center"><img alt="Insert_SEN66_into_Enclosure" src="https://github.com/user-attachments/assets/6f8cd045-af82-40ae-ae59-631ba9e61631" width="700"></p>
+<p align="center"><img alt="Insert_SEN66_into_Enclosure" src="docs/images/assembly-1-insert-sen66.jpg" width="700"></p>
 
 ### 2. Connect the e-paper display to the PCB with the FPC connector.
 
-<p align="center"><img alt="Connect_ePaper_to_PCB" src="https://github.com/user-attachments/assets/74e306dd-42e3-4feb-860c-e935da8fb220" width="700"></p>
+<p align="center"><img alt="Connect_ePaper_to_PCB" src="docs/images/assembly-2-connect-epaper.jpg" width="700"></p>
 
 ### 3. Press-fit the PCB into the enclosure body.
 
-<p align="center"><img alt="Insert_PCB_into_Enclosure" src="https://github.com/user-attachments/assets/752068ef-0f64-40fd-9949-34c260d7f2eb" width="700"></p>
+<p align="center"><img alt="Insert_PCB_into_Enclosure" src="docs/images/assembly-3-insert-pcb.jpg" width="700"></p>
 
 ### 4. Connect 6-pin JST GH Cable.
 
-<p align="center"><img alt="Connect_JST_Cable" src="https://github.com/user-attachments/assets/cb314557-cf85-4ab1-a9ef-7a8a2115400f" width="700"></p>
+<p align="center"><img alt="Connect_JST_Cable" src="docs/images/assembly-4-connect-jst.jpg" width="700"></p>
 
 ### 5. Bring display over in position above the PCB.
 
-<p align="center"><img alt="Display_Placement_1" src="https://github.com/user-attachments/assets/120c1d63-db2c-4569-8030-ebec3ec0e074" width="700"></p>
-<p align="center"><img alt="Display_Placement_2" src="https://github.com/user-attachments/assets/8cbffd19-aee5-40a8-b3b6-ce1f91275711" width="700"></p>
+<p align="center"><img alt="Display_Placement_1" src="docs/images/assembly-5-display-placement-1.jpg" width="700"></p>
+<p align="center"><img alt="Display_Placement_2" src="docs/images/assembly-6-display-placement-2.jpg" width="700"></p>
 
 ### 6. Attach the display cover.
 
-<p align="center"><img alt="Attach_Display_Cover" src="https://github.com/user-attachments/assets/800e34a6-3082-4a30-908d-15d8ea018a68" width="700"></p>
+<p align="center"><img alt="Attach_Display_Cover" src="docs/images/assembly-7-attach-cover.jpg" width="700"></p>
 
 ### 7. Secure the assembly from the bottom with the two M3 fasteners.
 
-<p align="center"><img alt="Secure_With_M3_Screws" src="https://github.com/user-attachments/assets/4d94f443-7d26-4a1e-abb5-98dc9f584dc8" width="700"></p>
+<p align="center"><img alt="Secure_With_M3_Screws" src="docs/images/assembly-8-m3-screws.jpg" width="700"></p>
 
 ## Firmware Setup
 _Any Aether devices purchased through [**Syntropy Labs**](https://syntropylabs.io/) are pre-flashed with device firmware and fully tested_
@@ -110,17 +112,17 @@ _Any Aether devices purchased through [**Syntropy Labs**](https://syntropylabs.i
 #### For a new board or a device that needs recovery:
 
 1. Connect Aether to your computer over USB.
-2. Open the [Aether WebUSB flashing tool](https://aether.syntropylabs.io/).
-3. Choose **Factory flash (recommended)** for first-time setup or full recovery.
+2. Open the [Aether WebUSB flashing tool](https://aether.syntropylabs.io/) and go to **Firmware & Updates**.
+3. Click **Install Aether firmware** under **Install or Update over USB**.
 4. Keep the page open until flashing is complete.
 5. Let the device boot.
 
 #### For a device that is already set up and just needs newer firmware:
 
-1. Connect the device over USB and open the same flashing page.
-2. Choose **Update firmware (OTA)** if you want to preserve the current device settings.
+- **Over Wi-Fi (recommended):** open the device's [local web UI](#local-web-ui), go to **Firmware & updates**, and click **Update**. Home Assistant offers the same update.
+- **Over USB:** follow the steps above. When the connected device is already running Aether firmware, the flasher offers an **update** that keeps your Wi-Fi and settings instead of erasing the device.
 
-_Note: The flashing page in `www/` is built around **ESP Web Tools / WebUSB** and is intended to work best in **Chrome or Edge**._
+_Note: The flashing page in `www/` is built around **ESP Web Tools / Web Serial** and requires desktop **Chrome or Edge**._
 
 #### Upgrading to the first HomeKit release from 1.0.13 or earlier
 
@@ -159,19 +161,23 @@ esphome compile aether.yaml
 
 ### Firmware development
 
-If you are working on the ESPHome firmware:
+If you are working on the ESPHome firmware, use the **latest ESPHome release**. Releases are built with it, and CI checks every PR against it. The default PlatformIO toolchain needs Python 3.12–3.14:
 
 ```sh
+pip install --upgrade esphome
 git clone https://github.com/EnriqueNeyra/aether.git
-cd "aether/firmware"
+cd aether/firmware
 ```
 
 ```sh
-cd firmware
 esphome config aether.yaml
 esphome compile aether.yaml
 esphome run aether.yaml
 ```
+
+Release firmware can't be flashed over Wi-Fi. To iterate over Wi-Fi, flash `aether-dev.yaml` over USB once, then use `esphome run aether-dev.yaml --device <device-ip>`.
+
+To try ESPHome's native ESP-IDF toolchain (the default once `toolchain: platformio` is removed in ESPHome 2027.2.0), pass `-s toolchain esp-idf`, e.g. `esphome -s toolchain esp-idf compile aether.yaml`.
 
 ## Using Aether
 
@@ -181,9 +187,9 @@ Once powered, Aether reads the SEN66 and refreshes both the on-device display an
 
 ### Wi-Fi setup and behavior
 
-On boot, Aether will expose a temporary setup access point so you can connect it to Wi-Fi through the captive portal flow. The network will appear as **aether-XXXXX**. 
+On boot, Aether will expose a temporary setup access point so you can connect it to Wi-Fi through the captive portal flow. The network will appear as **aether-XXXXXX**. 
 
-<p align="center"><img alt="aether-access-point" src="https://github.com/user-attachments/assets/989b05f5-8eb8-44bc-84a7-8de18c8cad2c" width="300"></p> 
+<p align="center"><img alt="aether-access-point" src="docs/images/wifi-access-point.jpg" width="300"></p> 
 
 - If you want **local web UI access**, **network-based ota updates**, or **Home Assistant integration**, connect the device to Wi-Fi during setup.
 - If you do **not** configure Wi-Fi, the device will still work as a standalone monitor **fully offline**.
@@ -197,6 +203,7 @@ The side / boot button supports multiple actions:
 - **Short press (tap, under 1 second):** cycles normal dashboard → info screen → HomeKit setup screen → normal dashboard
 - **Long press (hold ~3 seconds) from the normal screen:** enters factory reset confirmation
 - **Long press (hold ~3 seconds) again on the reset screen:** confirms the factory reset flow
+- **Long press (hold ~3 seconds) on the info screen while Wi-Fi is not connected:** reboots the device, which brings the setup access point back after offline mode
 
 The info and HomeKit screens ignore long presses, so you cannot fall into the reset flow from them by accident.
 
@@ -263,7 +270,7 @@ The result is 87.9% of the enlarged app partition, with room to spare.
 
 Because Aether runs ESPHome, it features a native API over Wi-Fi. This allows for:
 
-- **Automatic Home Assistant Integration:** Aether will automatically appear in Home Assistant integrations dashboard once connected to your network. It securely exposes all 9 sensor metrics (CO2, Temp, PM2.5, etc).
+- **Automatic Home Assistant Integration:** Aether will automatically appear in Home Assistant integrations dashboard once connected to your network. It exposes all 9 sensor metrics (CO2, temperature, humidity, PM1.0, PM2.5, PM4.0, PM10, VOC index, and NOx index).
 
 <p align="center">
   <a href="https://my.home-assistant.io/redirect/integrations/">
@@ -274,7 +281,8 @@ Because Aether runs ESPHome, it features a native API over Wi-Fi. This allows fo
 - **Custom Integrations:** You can integrate Aether into your own software or scripts using its local HTTP API. Exposed endpoints include:
   - `GET /api/state` - Returns a JSON object with all current sensor metrics and device status.
   - `POST /api/temp_unit?unit=C|F` - Changes the preferred temperature unit.
-  - `POST /api/perform_update` - Triggers the device to immediately begin downloading and installing the latest firmware update over HTTP (if one is available).
+  - `POST /api/check_update` - Asks the device to re-check for a firmware update now.
+  - `POST /api/perform_update` - Triggers the device to immediately begin downloading and installing the latest firmware update over HTTPS (if one is available).
 
 ### Updates
 
@@ -288,7 +296,11 @@ Use the USB flashing page for first-time setup and recovery. Use the local web U
 
 ## License
 
-This project (hardware, design files, and firmware) is licensed under the
-[Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-nc-sa/4.0/).
+Aether is licensed per directory:
+
+- **Firmware** (`firmware/`): [GNU General Public License v3](firmware/LICENSE). The firmware is built on GPLv3 code (ESPHome's C++ runtime and the GxEPD2 display driver), so it and the firmware binaries built from it are distributed under GPLv3.
+- **Everything else** (hardware, PCB and manufacturing files, enclosure, website, and documentation): [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-nc-sa/4.0/). See [LICENSE](LICENSE).
+
+Third-party components keep their own licenses, including the fonts in `firmware/components/aether_epaper/fonts/` and the libraries the firmware is built with.
 
 [![License: CC BY-NC-SA 4.0](https://licensebuttons.net/l/by-nc-sa/4.0/88x31.png)](http://creativecommons.org/licenses/by-nc-sa/4.0/)

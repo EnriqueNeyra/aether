@@ -1,5 +1,10 @@
 substitutions:
-  fw_version: "1.0.13"
+  fw_version: "1.0.15"
+  # ESPHome removes the platformio toolchain in 2027.2.0. The native esp-idf
+  # toolchain needs the ESPHome fix that resolves Adafruit GFX's BusIO
+  # dependency (esphome#21317, due in 2026.10.1). CI builds both toolchains;
+  # switch this default to esp-idf once that job is green.
+  toolchain: platformio
 
 esphome:
   name: aether
@@ -54,7 +59,7 @@ esp32:
   variant: esp32c3
   framework:
     type: arduino
-  toolchain: platformio
+  toolchain: ${toolchain}
   # Reclaims the 384 KB the stock 4 MB layout leaves unallocated so the HomeKit
   # stack fits. See partitions_aether.csv - this breaks OTA from <= 1.0.13.
   partitions: partitions_aether.csv
@@ -81,14 +86,23 @@ select:
 
 api:
   reboot_timeout: 0s
+  # No key in the (public) firmware: the device boots unprovisioned and still
+  # accepts existing plaintext clients until a client such as Home Assistant
+  # sets a key, after which the API is encrypted-only. Factory reset clears it.
+  encryption:
 
+# Releases update over HTTPS from the official manifest (or over USB). There is
+# deliberately no `platform: esphome` OTA here: it would let anyone on the LAN
+# flash firmware, and a password would be readable in the public binary. Use
+# aether-dev.yaml to flash development builds over Wi-Fi.
 ota:
-  - platform: esphome
   - platform: http_request
     id: ota_http
 
 http_request:
-  verify_ssl: false # required on Arduino framework for HTTPS
+  # Verifies the OTA host's certificate against ESP-IDF's common CA bundle.
+  # The manifest carries the binary's MD5, so it must come from a trusted host.
+  verify_ssl: true
   buffer_size_rx: 2048 # large enough to handle massive redirect headers if ever needed
 
 update:
@@ -118,6 +132,8 @@ binary_sensor:
     name: "Boot Button"
     id: boot_button
     internal: true
+    filters:
+      - delayed_on_off: 10ms # debounce
     on_multi_click:
       - timing:
           - ON for 50ms to 1s
@@ -134,18 +150,20 @@ binary_sensor:
 captive_portal:
 improv_serial:
 
-# NOTE: esp32_improv (Bluetooth Wi-Fi provisioning) was removed to make room for
-# the HomeKit stack. It pulled in the full Bluedroid BT stack, ~432 KB of flash,
-# which is more than HomeKit costs. Onboarding is unaffected in practice: the
-# WebUSB flashing page provisions over USB via improv_serial, and the captive
-# portal AP still works. Re-adding it will overflow the app partition.
+# NOTE: improv_ble (Bluetooth Wi-Fi provisioning) is left out to make room for
+# the HomeKit stack. It pulls in the full Bluedroid BT stack, ~432 KB of flash,
+# which is about what HomeKit costs. Onboarding still works over USB
+# (improv_serial on the flashing page) and through the captive portal AP.
+# Re-adding it will overflow the app partition.
 
 # Web server automatically registers mDNS _http._tcp on port 80
 web_server:
   port: 80
   version: 3
   local: true
-  include_internal: true
+  # No firmware uploads over HTTP. The captive portal still accepts them while
+  # the setup AP is up, as the recovery path for an unconfigured device.
+  ota: false
 
 external_components:
   - source:

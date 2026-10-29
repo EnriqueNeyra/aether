@@ -3,6 +3,8 @@
 #include "esphome/core/component.h"
 #include "esphome/core/log.h"
 #include "esphome/core/defines.h"
+#include "esphome/core/helpers.h"
+#include "esphome/core/string_ref.h"
 #include "esphome/components/select/select.h"
 #include "esphome/components/web_server_base/web_server_base.h"
 #include "esphome/components/sensor/sensor.h"
@@ -11,9 +13,13 @@
 #ifdef USE_AETHER_HOMEKIT
 #include "esphome/components/aether_homekit/aether_homekit.h"
 #endif
+#ifdef USE_CAPTIVE_PORTAL
+#include "esphome/components/captive_portal/captive_portal.h"
+#endif
 
 #include <string>
 #include <cmath>
+#include <cstring>
 #include <functional>
 
 
@@ -31,6 +37,10 @@ namespace aether
   // - Second tab: Firmware & Updates (one-click managed update via http_request)
   #include "aether_web_ui_html.h"
 
+  // Requests are served on the ESP-IDF httpd task, not ESPHome's main loop.
+  // Handlers therefore never change entities directly: actions are deferred to
+  // the main loop (as ESPHome's own web_server does), and update/unit status is
+  // read from a snapshot that loop() refreshes under a lock.
   class AetherWebUI : public esphome::Component, public AsyncWebHandler
   {
   public:
@@ -54,6 +64,8 @@ namespace aether
 
     void setup() override
     {
+      // The HTTP listener itself is started by web_server (a declared
+      // dependency of this component); we only attach a handler to it.
       auto *ws = esphome::web_server_base::global_web_server_base;
       if (ws == nullptr)
       {
@@ -62,6 +74,30 @@ namespace aether
       }
       ws->add_handler(this);
       ESP_LOGI(TAG, "Aether UI handler registered");
+    }
+
+    void loop() override
+    {
+      Snapshot next;
+      next.use_f = temp_unit_select_ == nullptr || temp_unit_select_->current_option() != "Celsius";
+      if (fw_update_ != nullptr)
+      {
+        next.update_state = fw_update_->state;
+        if (fw_update_->update_info.has_progress)
+          next.update_progress = fw_update_->update_info.progress;
+        snprintf(next.latest_version, sizeof(next.latest_version), "%s",
+                 fw_update_->update_info.latest_version.c_str());
+      }
+
+      esphome::LockGuard lock(snapshot_lock_);
+      // http_request drops back to AVAILABLE when an install aborts or fails;
+      // a successful install reboots instead, so that transition is a failure.
+      if (snapshot_.update_state == esphome::update::UPDATE_STATE_INSTALLING &&
+          next.update_state == esphome::update::UPDATE_STATE_AVAILABLE)
+        next.install_failed = true;
+      else if (next.update_state != esphome::update::UPDATE_STATE_INSTALLING)
+        next.install_failed = snapshot_.install_failed;
+      snapshot_ = next;
     }
 
     void dump_config() override
@@ -78,22 +114,37 @@ namespace aether
     // AsyncWebHandler interface
     bool canHandle(AsyncWebServerRequest *request) const override
     {
-      auto url = request->url();
-      if ((url == "/" || url == "/index.html") && !request->hasArg("save"))
-        return true;
-      if (url.rfind("/api/", 0) == 0)
+      char url_buf[AsyncWebServerRequest::URL_BUF_SIZE];
+      const esphome::StringRef url = request->url_to(url_buf);
+      if (url == "/" || url == "/index.html")
+        return !captive_portal_active_();
+      if (url.starts_with("/api/"))
         return true;
       return false;
     }
 
     void handleRequest(AsyncWebServerRequest *request) override
     {
-      auto url = request->url();
+      char url_buf[AsyncWebServerRequest::URL_BUF_SIZE];
+      const esphome::StringRef url = request->url_to(url_buf);
       if (url == "/" || url == "/index.html")
       {
         handle_root_(request);
+        return;
       }
-      else if (url == "/api/state")
+
+      // Browsers send Origin on cross-site requests; refuse those so other web
+      // pages can't read or drive the device, as ESPHome's web_server does.
+      // Refusals use 400: ESPHome's ESP32 server only sends 200, 204, 400, 401,
+      // 404, 409 and 422, and turns any other code (403, 405) into a 500.
+      if (!origin_allowed_(request))
+      {
+        request->send(400, "application/json",
+                      "{\"ok\":false,\"error\":\"forbidden_origin\"}");
+        return;
+      }
+
+      if (url == "/api/state")
       {
         handle_state_(request);
       }
@@ -118,6 +169,15 @@ namespace aether
     bool isRequestHandlerTrivial() const override { return false; }
 
   private:
+    struct Snapshot
+    {
+      esphome::update::UpdateState update_state{esphome::update::UPDATE_STATE_UNKNOWN};
+      float update_progress{0.0f};
+      char latest_version[48]{};
+      bool install_failed{false};
+      bool use_f{true};
+    };
+
     Sensor *co2_{nullptr};
     Sensor *pm25_{nullptr};
     Sensor *temp_{nullptr};
@@ -135,9 +195,52 @@ namespace aether
     Select *temp_unit_select_{nullptr};
     std::function<void()> on_check_update_{nullptr};
 
+    esphome::Mutex snapshot_lock_;
+    Snapshot snapshot_;
+
+    Snapshot snapshot_copy_()
+    {
+      esphome::LockGuard lock(snapshot_lock_);
+      return snapshot_;
+    }
+
     static bool has_value_(Sensor *s)
     {
       return s != nullptr && std::isfinite(s->state);
+    }
+
+    // While the setup AP is up, "/" belongs to the captive portal's Wi-Fi form.
+    // Our handler registers first, so without this it would shadow the form for
+    // anyone who browses to the AP address directly.
+    static bool captive_portal_active_()
+    {
+#ifdef USE_CAPTIVE_PORTAL
+      return esphome::captive_portal::global_captive_portal != nullptr &&
+             esphome::captive_portal::global_captive_portal->is_active();
+#else
+      return false;
+#endif
+    }
+
+    // Same rule as ESPHome's web_server: allow requests without an Origin
+    // (curl, scripts, same-origin GETs) and those whose Origin authority equals
+    // the Host they were sent to (the device's IP or mDNS name).
+    static bool origin_allowed_(AsyncWebServerRequest *request)
+    {
+      const auto origin_header = request->get_header("Origin");
+      if (!origin_header.has_value() || origin_header->empty())
+        return true;
+      const std::string &origin = *origin_header;
+      const size_t scheme_sep = origin.find("://");
+      if (scheme_sep == std::string::npos)
+        return false;
+      const auto host_header = request->get_header("Host");
+      if (!host_header.has_value() || host_header->empty())
+        return false;
+      const std::string &host = *host_header;
+      const size_t authority = scheme_sep + 3;
+      return origin.size() - authority == host.size() &&
+             memcmp(origin.data() + authority, host.data(), host.size()) == 0;
     }
 
     // Append a sensor value as a JSON number or null.
@@ -160,16 +263,20 @@ namespace aether
       return n < remaining ? n : remaining - 1;
     }
 
-    // Escape a string for safe JSON insertion (handles " and \).
+    // Escape a string for safe JSON insertion: escapes " and \, drops control
+    // characters, and stops before a character (or its escape) would not fit.
     static void json_escape_(char *dst, size_t dst_size, const char *src)
     {
       size_t di = 0;
-      for (const char *s = src; *s && di + 1 < dst_size; ++s)
+      for (const char *s = src; *s; ++s)
       {
-        if ((*s == '"' || *s == '\\') && di + 2 < dst_size)
-        {
+        if (static_cast<unsigned char>(*s) < 0x20)
+          continue;
+        const bool escape = (*s == '"' || *s == '\\');
+        if (di + (escape ? 2 : 1) >= dst_size)
+          break;
+        if (escape)
           dst[di++] = '\\';
-        }
         dst[di++] = *s;
       }
       dst[di] = '\0';
@@ -190,35 +297,27 @@ namespace aether
           "unknown";
 #endif
 
-      const bool use_f = temp_unit_select_ == nullptr || temp_unit_select_->current_option() != "Celsius";
+      const Snapshot snap = snapshot_copy_();
 
-      bool has_update = false;
-      const char *latest_version = "";
       const char *update_state_str = "unknown";
-      float update_progress = 0.0f;
-
-      if (fw_update_ != nullptr)
-      {
-        has_update = fw_update_->state == esphome::update::UPDATE_STATE_AVAILABLE;
-        latest_version = fw_update_->update_info.latest_version.c_str();
-        if (fw_update_->state == esphome::update::UPDATE_STATE_NO_UPDATE)
-            update_state_str = "no_update";
-        else if (fw_update_->state == esphome::update::UPDATE_STATE_AVAILABLE)
-            update_state_str = "available";
-        else if (fw_update_->state == esphome::update::UPDATE_STATE_INSTALLING)
-            update_state_str = "installing";
-
-        if (fw_update_->update_info.has_progress)
-            update_progress = fw_update_->update_info.progress;
-      }
+      if (snap.update_state == esphome::update::UPDATE_STATE_NO_UPDATE)
+        update_state_str = "no_update";
+      else if (snap.update_state == esphome::update::UPDATE_STATE_AVAILABLE)
+        update_state_str = "available";
+      else if (snap.update_state == esphome::update::UPDATE_STATE_INSTALLING)
+        update_state_str = "installing";
 
       // Build JSON incrementally so each sensor emits null when unavailable.
-      // After each snprintf, clamp the advance to avoid underflowing rem.
+      // After each snprintf, clamp the advance to avoid underflowing rem, and
+      // remember if anything was cut off.
       char *p = json;
       int rem = sizeof(json);
       int n;
+      bool truncated = false;
 
       auto advance = [&](int written) {
+        if (written < 0 || written >= rem)
+          truncated = true;
         int clamped = (written < rem) ? written : rem - 1;
         if (clamped < 0) clamped = 0;
         p += clamped;
@@ -240,7 +339,7 @@ namespace aether
       }
 
       char escaped_version[64];
-      json_escape_(escaped_version, sizeof(escaped_version), latest_version);
+      json_escape_(escaped_version, sizeof(escaped_version), snap.latest_version);
 
       n = snprintf(p, rem,
                "\"fw_version\":\"%.48s\","
@@ -248,13 +347,15 @@ namespace aether
                "\"has_update\":%s,"
                "\"latest_version\":\"%s\","
                "\"update_state\":\"%s\","
-               "\"update_progress\":%.2f",
+               "\"update_progress\":%.2f,"
+               "\"install_failed\":%s",
                ver,
-               use_f ? "F" : "C",
-               has_update ? "true" : "false",
+               snap.use_f ? "F" : "C",
+               snap.update_state == esphome::update::UPDATE_STATE_AVAILABLE ? "true" : "false",
                escaped_version,
                update_state_str,
-               update_progress);
+               snap.update_progress,
+               snap.install_failed ? "true" : "false");
       advance(n);
 
 #ifdef USE_AETHER_HOMEKIT
@@ -278,7 +379,7 @@ namespace aether
       n = snprintf(p, rem, "}");
       advance(n);
 
-      if (rem <= 0)
+      if (truncated)
       {
         ESP_LOGW(TAG, "JSON response truncated");
         request->send(500, "application/json", "{\"error\":\"response_truncated\"}");
@@ -293,7 +394,7 @@ namespace aether
     {
       if (request->method() != HTTP_POST)
       {
-        request->send(405, "application/json",
+        request->send(400, "application/json",
                       "{\"ok\":false,\"error\":\"method_not_allowed\"}");
         return;
       }
@@ -304,10 +405,17 @@ namespace aether
                       "{\"ok\":false,\"error\":\"update_not_configured\"}");
         return;
       }
+      // perform(false) silently does nothing unless an update is available, so
+      // say so instead of reporting a start that never happens.
+      if (snapshot_copy_().update_state != esphome::update::UPDATE_STATE_AVAILABLE)
+      {
+        request->send(409, "application/json",
+                      "{\"ok\":false,\"error\":\"no_update_available\"}");
+        return;
+      }
 
       ESP_LOGI(TAG, "Starting http_request firmware update via web UI");
-      // false = do not force if it thinks there is no update; UI already checks versions
-      fw_update_->perform(false);
+      this->defer([this]() { fw_update_->perform(false); });
       request->send(200, "application/json", "{\"ok\":true}");
     }
 
@@ -315,7 +423,7 @@ namespace aether
     {
       if (request->method() != HTTP_POST)
       {
-        request->send(405, "application/json",
+        request->send(400, "application/json",
                       "{\"ok\":false,\"error\":\"method_not_allowed\"}");
         return;
       }
@@ -330,7 +438,7 @@ namespace aether
       ESP_LOGI(TAG, "Triggering firmware update check via web UI");
       if (on_check_update_)
       {
-        on_check_update_();
+        this->defer([this]() { on_check_update_(); });
       }
       request->send(200, "application/json", "{\"ok\":true}");
     }
@@ -339,7 +447,7 @@ namespace aether
     {
       if (request->method() != HTTP_POST)
       {
-        request->send(405, "application/json",
+        request->send(400, "application/json",
                       "{\"ok\":false,\"error\":\"method_not_allowed\"}");
         return;
       }
@@ -359,17 +467,14 @@ namespace aether
       }
 
       const std::string unit = request->getParam("unit")->value();
-      if (unit == "C")
+      if (unit == "C" || unit == "F")
       {
-        temp_unit_select_->make_call().set_option("Celsius").perform();
+        const bool celsius = unit == "C";
+        this->defer([this, celsius]() {
+          temp_unit_select_->make_call().set_option(celsius ? "Celsius" : "Fahrenheit").perform();
+        });
         request->send(200, "application/json",
-                      "{\"ok\":true,\"temp_unit\":\"C\"}");
-      }
-      else if (unit == "F")
-      {
-        temp_unit_select_->make_call().set_option("Fahrenheit").perform();
-        request->send(200, "application/json",
-                      "{\"ok\":true,\"temp_unit\":\"F\"}");
+                      celsius ? "{\"ok\":true,\"temp_unit\":\"C\"}" : "{\"ok\":true,\"temp_unit\":\"F\"}");
       }
       else
       {

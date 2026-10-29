@@ -4,6 +4,11 @@ on:
   push:
     branches:
       - main
+    # Every release bumps the version and is offered to every device, so only
+    # firmware changes cut one. Site/manifest changes deploy via pages.yml.
+    paths:
+      - "firmware/**"
+      - ".github/workflows/release.yml"
   workflow_dispatch:
 
 permissions:
@@ -15,21 +20,26 @@ concurrency:
 
 jobs:
   release:
-    if: github.actor != 'github-actions[bot]' && (github.event_name != 'push' || !contains(github.event.head_commit.message, '[skip release]'))
+    if: github.ref == 'refs/heads/main' && github.actor != 'github-actions[bot]' && (github.event_name != 'push' || !contains(github.event.head_commit.message, '[skip release]'))
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
-          python-version: "3.12"
+          python-version: "3.13"
 
+      # Deliberately unpinned: releases track the latest ESPHome. build.yml
+      # compiles PRs and runs weekly against it so breakage surfaces early.
       - name: Install ESPHome
-        run: python -m pip install --upgrade pip "esphome>=2026.8.1"
+        id: esphome
+        run: |
+          python -m pip install --upgrade pip "esphome>=2026.10.0"
+          echo "version=$(python -c 'import esphome.const as c; print(c.__version__)')" >> "$GITHUB_OUTPUT"
 
       - name: Bump patch version
         id: version
@@ -77,11 +87,15 @@ jobs:
         run: |
           set -euo pipefail
 
-          FACTORY_BIN="$(find firmware -path '*/.pioenvs/aether/firmware.factory.bin' | head -n 1)"
-          OTA_BIN="$(find firmware -path '*/.pioenvs/aether/firmware.ota.bin' | head -n 1)"
-
-          test -n "${FACTORY_BIN}"
-          test -n "${OTA_BIN}"
+          # The output directory depends on the ESP32 toolchain
+          # (.pioenvs/aether/ for platformio, build/ for esp-idf), so search
+          # the whole build tree and insist on exactly one match.
+          mapfile -t FACTORY_BINS < <(find firmware/.esphome/build -name firmware.factory.bin)
+          mapfile -t OTA_BINS < <(find firmware/.esphome/build -name firmware.ota.bin)
+          test "${#FACTORY_BINS[@]}" -eq 1
+          test "${#OTA_BINS[@]}" -eq 1
+          FACTORY_BIN="${FACTORY_BINS[0]}"
+          OTA_BIN="${OTA_BINS[0]}"
 
           mkdir -p release
           cp "${FACTORY_BIN}" release/aether-factory.bin
@@ -106,7 +120,17 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add firmware/aether.yaml manifests/manifest.json manifests/ota-manifest.json
           git commit -m "Release ${{ steps.version.outputs.tag }} [skip release]"
-          git push
+          # main may have moved while this release built (e.g. a docs merge).
+          # Rebase the metadata commit onto it instead of failing the push; a
+          # newer firmware change gets its own queued release run.
+          for _ in 1 2 3; do
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            git pull --rebase origin main
+          done
+          echo "::error::Could not push release metadata to main after 3 attempts"
+          exit 1
 
       - name: Create tag
         run: |
@@ -121,4 +145,4 @@ jobs:
             release/aether-factory.bin \
             release/aether-ota.bin \
             --title "${{ steps.version.outputs.tag }}" \
-            --notes "Automated firmware release for Aether ${{ steps.version.outputs.version }}."
+            --notes "Automated firmware release for Aether ${{ steps.version.outputs.version }}. Built with ESPHome ${{ steps.esphome.outputs.version }}."

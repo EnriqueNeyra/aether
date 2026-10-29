@@ -33,7 +33,13 @@ Fortunately, the Aether firmware uses the `GxEPD2` library, which is the most co
 
 ### How to Switch Displays in Firmware
 
-To support a display with a different IC, you do not need to rewrite any graphics logic. You only need to update the display class instantiation in the firmware.
+For another **black/white** panel, you do not need to rewrite any graphics logic. You only need to update the display class instantiation in the firmware.
+
+Multi-color panels (e.g., 3-color IL0373 / UC8151C black/white/red, or 7-color UC8159 ACeP) need more:
+
+- They use the `GxEPD2_3C` / `GxEPD2_7C` templates instead of `GxEPD2_BW`. Include `GxEPD2_3C.h` / `GxEPD2_7C.h`; `aether_epaper.h` currently includes only `GxEPD2_BW.h`.
+- Their full refreshes take much longer (often 10+ seconds), and they usually don't support partial refresh. The 5-second partial-refresh dashboard and the boot animation would need rework.
+- The firmware detects a refresh slower than about 8 seconds as a stuck panel and backs off, so that threshold would need raising too.
 
 Open `firmware/components/aether_epaper/aether_epaper.h`. Currently, it initializes the UC8253:
 
@@ -51,6 +57,6 @@ static GxEPD2_BW<GxEPD2_290_GDEY029T94, GxEPD2_290_GDEY029T94::HEIGHT>
     display(GxEPD2_290_GDEY029T94(EPD_CS, EPD_DC, EPD_RST, EPD_BUSY));
 ```
 
-Because `GxEPD2` extends the standard Adafruit GFX library, all existing drawing commands (`display.print`, `display.drawRect`, etc.) will continue to work perfectly. 
+Because `GxEPD2` extends the standard Adafruit GFX library, all existing drawing commands (`display.print`, `display.drawRect`, etc.) will keep working on black/white panels.
 
 *(Note: Depending on the resolution of the new display, you may need to adjust the UI layout coordinates in `aether_epaper_layout.h` to fit the new screen dimensions).*

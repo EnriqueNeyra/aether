@@ -30,6 +30,43 @@ namespace aether
     static constexpr const GFXfont *kSmallLabelFont = &Inter_Bold9pt7b;
     static constexpr const GFXfont *kCenterMinorValueFont = &Inter_Bold_Tabular18pt7b;
     static constexpr const GFXfont *kTempSuffixFont = &Inter_Bold12pt7b;
+
+    // Readings above these show a caution icon on the main dashboard.
+    static constexpr float kPm1Alert = 15.0f;
+    static constexpr float kPm25Alert = 15.0f;
+    static constexpr float kPm4Alert = 30.0f;
+    static constexpr float kPm10Alert = 50.0f;
+    static constexpr float kVocAlert = 250.0f;
+    static constexpr float kNoxAlert = 100.0f;
+    static constexpr float kCo2Alert = 1000.0f;
+
+    enum DashboardAlert : uint8_t
+    {
+      ALERT_PM1 = 1 << 0,
+      ALERT_PM25 = 1 << 1,
+      ALERT_PM4 = 1 << 2,
+      ALERT_PM10 = 1 << 3,
+      ALERT_VOC = 1 << 4,
+      ALERT_NOX = 1 << 5,
+      ALERT_CO2 = 1 << 6,
+    };
+
+    // NaN compares false, so a missing reading never raises an alert.
+    inline uint8_t dashboard_alerts(const Metrics &m)
+    {
+      return (m.pm1 > kPm1Alert ? ALERT_PM1 : 0) |
+             (m.pm25 > kPm25Alert ? ALERT_PM25 : 0) |
+             (m.pm4 > kPm4Alert ? ALERT_PM4 : 0) |
+             (m.pm10 > kPm10Alert ? ALERT_PM10 : 0) |
+             (m.voc > kVocAlert ? ALERT_VOC : 0) |
+             (m.nox > kNoxAlert ? ALERT_NOX : 0) |
+             (m.co2 > kCo2Alert ? ALERT_CO2 : 0);
+    }
+
+    inline float display_temperature(float temp_c, bool use_f)
+    {
+      return use_f ? (temp_c * 1.8f + 32.0f) : temp_c;
+    }
     template <typename Display>
     inline void draw_caution_icon(Display &display, int cx, int cy, int size)
     {
@@ -134,6 +171,26 @@ namespace aether
     {
       if (has_real_value(value)) snprintf(buf, size, format, value);
       else snprintf(buf, size, "--");
+    }
+
+    // Everything that changes pixels on the main dashboard, formatted exactly as
+    // render_sketch_layout() draws it, so the caller can skip refreshing the
+    // panel when nothing visible changed.
+    inline void format_dashboard_key(char *buf, size_t size, const Metrics &m, bool use_f)
+    {
+      char pm1[16], pm25[16], pm4[16], pm10[16], temp[16], rh[16], co2[16], voc[16], nox[16];
+      format_metric(pm1, sizeof(pm1), m.pm1, "%.1f");
+      format_metric(pm25, sizeof(pm25), m.pm25, "%.1f");
+      format_metric(pm4, sizeof(pm4), m.pm4, "%.1f");
+      format_metric(pm10, sizeof(pm10), m.pm10, "%.1f");
+      format_metric(temp, sizeof(temp), display_temperature(m.temp_c, use_f), "%.1f");
+      format_metric(rh, sizeof(rh), m.rh, "%.1f");
+      format_metric(co2, sizeof(co2), m.co2, "%.0f");
+      format_metric(voc, sizeof(voc), m.voc, "%.0f");
+      format_metric(nox, sizeof(nox), m.nox, "%.0f");
+      snprintf(buf, size, "%s|%s|%s|%s|%s%c|%s|%s|%s|%s|%02x",
+               pm1, pm25, pm4, pm10, temp, use_f ? 'F' : 'C', rh, co2, voc, nox,
+               static_cast<unsigned>(dashboard_alerts(m)));
     }
 
     inline bool is_digits_subset_text(const char *text)
@@ -444,7 +501,8 @@ namespace aether
     template <typename Display>
     inline void render_sketch_layout(Display &display, const Metrics &metrics, bool use_f)
     {
-      const float display_temp = use_f ? (metrics.temp_c * 1.8f + 32.0f) : metrics.temp_c;
+      const float display_temp = display_temperature(metrics.temp_c, use_f);
+      const uint8_t alerts = dashboard_alerts(metrics);
       char co2_buf[16]; format_metric(co2_buf, sizeof(co2_buf), metrics.co2, "%.0f");
 
       display.fillScreen(GxEPD_WHITE);
@@ -454,21 +512,21 @@ namespace aether
       draw_corner_brace(display, true, false); draw_corner_brace(display, false, false);
       draw_divider(display, 164, 251, 79); draw_divider(display, 164, 251, 172);
 
-      draw_pm_section(display, 12, 125, 23, 64, 64, "PM1", metrics.pm1, metrics.pm1 > 15.0f);
-      draw_pm_section(display, 286, 404, 23, 351, 64, "PM2.5", metrics.pm25, metrics.pm25 > 15.0f);
+      draw_pm_section(display, 12, 125, 23, 64, 64, "PM1", metrics.pm1, alerts & ALERT_PM1);
+      draw_pm_section(display, 286, 404, 23, 351, 64, "PM2.5", metrics.pm25, alerts & ALERT_PM25);
       draw_temp_reading(display, 208, 53, display_temp, use_f ? 'F' : 'C');
 
-      draw_index_section(display, 12, 121, 105, 63, 149, "VOC", metrics.voc, metrics.voc > 250.0f);
+      draw_index_section(display, 12, 121, 105, 63, 149, "VOC", metrics.voc, alerts & ALERT_VOC);
       print_left(display, 156, 105, kSmallLabelFont, "CO2");
       print_right(display, 259, 105, kSmallLabelFont, "ppm");
       const GFXfont *co2_font = metric_value_font(co2_buf, &Inter_Bold_Tabular24pt7b, &Inter_Bold18pt7b);
       print_centered(display, 208, 153, co2_font, co2_buf);
-      draw_alert_if_needed(display, co2_font, co2_buf, 208, 153, metrics.co2 > 1000.0f, 21, 30);
-      draw_index_section(display, 295, 404, 105, 349, 149, "NOx", metrics.nox, metrics.nox > 100.0f);
+      draw_alert_if_needed(display, co2_font, co2_buf, 208, 153, alerts & ALERT_CO2, 21, 30);
+      draw_index_section(display, 295, 404, 105, 349, 149, "NOx", metrics.nox, alerts & ALERT_NOX);
 
-      draw_pm_section(display, 12, 125, 233, 64, 207, "PM4", metrics.pm4, metrics.pm4 > 30.0f);
+      draw_pm_section(display, 12, 125, 233, 64, 207, "PM4", metrics.pm4, alerts & ALERT_PM4);
       draw_humidity_reading(display, 208, 216, metrics.rh);
-      draw_pm_section(display, 286, 404, 233, 351, 207, "PM10", metrics.pm10, metrics.pm10 > 50.0f);
+      draw_pm_section(display, 286, 404, 233, 351, 207, "PM10", metrics.pm10, alerts & ALERT_PM10);
     }
 
   } // namespace aether_epaper_layout
