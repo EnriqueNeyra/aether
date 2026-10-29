@@ -2,9 +2,12 @@ import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.const import CONF_ID, CONF_NAME, CONF_PORT
 from esphome.components import sensor
-from esphome.components.esp32 import add_idf_component
 
 DEPENDENCIES = ["esp32", "wifi"]
+# HomeSpan's HAP.cpp needs libsodium. ESPHome's noise component (which API
+# encryption loads too) provides the only copy the build may contain, and
+# sodium_compat.c adds the few functions that copy leaves out.
+AUTO_LOAD = ["noise"]
 
 # Pinned so a HomeSpan release can never silently change pairing behaviour or
 # the arduino-esp32 version it demands. 2.1.8 requires arduino-esp32 >= 3.3.0,
@@ -112,11 +115,6 @@ CONFIG_SCHEMA = cv.Schema(
 
 async def to_code(config):
     cg.add_library("HomeSpan", None, HOMESPAN_REF)
-
-    # HomeSpan's HAP.cpp needs sodium.h for Ed25519/Curve25519/ChaCha20-Poly1305.
-    # ESP-IDF 5.5 no longer ships libsodium as a built-in component, so pull it
-    # from the Espressif component registry.
-    add_idf_component(name="espressif/libsodium", ref="^1.0.20")
 
     # ESPHome builds arduino-esp32 as an IDF component, which means the bundled
     # arduino libraries HomeSpan includes (WiFi.h, ETH.h, ArduinoOTA.h, ...) get

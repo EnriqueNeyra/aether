@@ -21,6 +21,9 @@
 #include <esp_wifi.h>
 #include <mdns.h>
 
+// sodium_compat.c
+extern "C" int aether_sodium_compat_selftest(void);
+
 namespace aether
 {
 
@@ -125,6 +128,17 @@ namespace aether
   void AetherHomeKit::setup()
   {
     reclaim_wifi_stack_();
+
+    // HomeSpan's key generation and signing run on sodium_compat.c, which
+    // depends on libsodium internals. Refuse to start rather than pair with
+    // bad keys if those ever change.
+    const int selftest = aether_sodium_compat_selftest();
+    if (selftest != 0)
+    {
+      ESP_LOGE(TAG, "libsodium self-test failed (%d); HomeKit disabled", selftest);
+      this->mark_failed();
+      return;
+    }
 
     impl_ = new Impl();
 
