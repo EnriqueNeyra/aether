@@ -55,7 +55,7 @@ To build one Aether unit, the following core parts are needed:
 | **3D-printed enclosure parts**             | [`enclosure/`](https://github.com/EnriqueNeyra/aether/tree/main/enclosure) |
 | **2x M3 x 6 mm countersunk screws + nuts** | [Screws](https://amzn.to/3SKvOgg) / [Nuts](https://amzn.to/44jUIG1) |
 
-_The Amazon links are affiliate links: as an Amazon Associate, the author earns from qualifying purchases._
+<sub>As an Amazon Associate I earn from qualifying purchases.</sub>
 
 <p align="center"><img alt="Aether parts laid out before assembly" src="docs/images/aether-front.jpg" width="700"></p>
 
