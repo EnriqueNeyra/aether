@@ -24,23 +24,23 @@
       </div>
 
       <div class="tabs">
-        <div class="tab-buttons">
-          <button class="tab-btn tab-btn--active" data-tab="env">Environment</button>
-          <button class="tab-btn" data-tab="fw">Firmware &amp; updates</button>
+        <div class="tab-buttons" role="tablist">
+          <button class="tab-btn tab-btn--active" data-tab="env" role="tab" id="tab-btn-env" aria-controls="tab-env" aria-selected="true">Environment</button>
+          <button class="tab-btn" data-tab="fw" role="tab" id="tab-btn-fw" aria-controls="tab-fw" aria-selected="false">Firmware &amp; updates</button>
         </div>
 
         <div class="tab-panels">
           <!-- Environment tab -->
-          <div class="tab-panel tab-panel--active" id="tab-env">
+          <div class="tab-panel tab-panel--active" id="tab-env" role="tabpanel" aria-labelledby="tab-btn-env">
             <div class="card">
               <div class="card-header">
                 <div>
                   <div class="card-title">Environment</div>
                   <div class="card-subtitle">Live sensor snapshot</div>
                 </div>
-                <div class="unit-toggle">
-                  <button class="unit-btn unit-btn--active" data-unit="F">°F</button>
-                  <button class="unit-btn" data-unit="C">°C</button>
+                <div class="unit-toggle" role="group" aria-label="Temperature unit">
+                  <button class="unit-btn unit-btn--active" data-unit="F" aria-pressed="true">°F</button>
+                  <button class="unit-btn" data-unit="C" aria-pressed="false">°C</button>
                 </div>
               </div>
               <div class="metrics-grid" id="metrics"></div>
@@ -51,7 +51,7 @@
           </div>
 
           <!-- Firmware tab -->
-          <div class="tab-panel" id="tab-fw">
+          <div class="tab-panel" id="tab-fw" role="tabpanel" aria-labelledby="tab-btn-fw">
             <div class="firmware-card">
               <div class="firmware-inner">
                 <div class="fw-pill">
@@ -84,7 +84,7 @@
                   </button>
                 </div>
 
-                <div class="fw-status-text" id="fw-status-text">
+                <div class="fw-status-text" id="fw-status-text" role="status" aria-live="polite">
                   Checking for updates…
                 </div>
               </div>
